@@ -1,0 +1,13 @@
+{
+  "name": "purr.run",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "./"
+  },
+  "author": "Shaw Summa",
+  "license": "MIT"
+}
