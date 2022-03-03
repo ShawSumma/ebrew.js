@@ -196,16 +196,17 @@ const Parser = class {
             if (this.state.done()) {
                 this.raise("toplevel: file ended when reading function definition arguments");
                 return [];
-            }
-            if (this.state.first() === ')') {
+            } else if (this.state.first() === ')') {
                 this.state.skip();
                 break;
-            }
-            const name = this.readName();
-            this.skipSpace();
-            if (this.state.first() === '(') {
-                args.push(new Binding(name, this.readArgArray()));
+            } else if (this.state.first() === '(') {
+                const subargs = this.readArgArray();
+                if (subargs.length === 0) {
+                    this.raise('arglist: empty parens found in definition arguments');
+                }
+                args.push(new Binding(subargs[0].name, subargs.slice(1)));
             } else {
+                const name = this.readName();
                 args.push(new Binding(name));
             }
         }
@@ -303,7 +304,7 @@ const Parser = class {
             if (!this.state.done() && this.state.first() !== '\'') {
                 this.state.skip();
             }
-            return new Value(Number(chr));
+            return new Value(BigInt(chr.charCodeAt(0)));
         }
         const startOpenParen = this.state.first() === '(';
         if (startOpenParen) {
@@ -354,7 +355,7 @@ const Parser = class {
                 break;
             default:
                 if (/^[0-9]+$/.test(name.repr)) {
-                    res = new Value(Number(name.repr));
+                    res = new Value(BigInt(name.repr));
                 } else if (type.func || name instanceof Value) {
                     res = name;
                 } else {
@@ -372,11 +373,11 @@ const Parser = class {
     }
 
     readDef() {
-        const fname = this.readName();
-        if (fname.repr.length === 0) {
-            return this.raise('toplevel: expected a function name');
-        }
         const vals = this.readArgArray();
+        if (vals.length === 0) {
+            return this.raise('toplevel: empty definiton');
+        }
+        const fname = vals.shift().name;
         this.defs[0][fname.repr] = new Binding(fname, vals);
         this.defs.push({});
         try {

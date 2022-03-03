@@ -10,7 +10,7 @@ const main = async (inpath, outpath) => {
     const interp = new Compiler();
     const js = interp.compile(ast);
     const prelude = await fs.readFile('prelude.js');
-    fs.writeFile(outpath, prelude + js);
+    fs.writeFile(outpath, String(prelude) + js);
 };
 
-main(`ebrew.eb`, `out.js`);
+main(`ebrew/ebrew.eb`, `out.js`);

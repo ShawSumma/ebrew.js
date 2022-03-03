@@ -31,37 +31,37 @@ const Compiler = class {
                     return `const ${mangle(name)}=await rt_load("${name}");`;
                 }
                 case 'or': {
-                    const lhs = this.compile(node.args[0].repr);
-                    const rhs = this.compile(node.args[1].repr);
+                    const lhs = this.compile(node.args[0]);
+                    const rhs = this.compile(node.args[1]);
                     return `(${lhs}||${rhs})`;
                 }
                 case 'and': {
-                    const lhs = this.compile(node.args[0].repr);
-                    const rhs = this.compile(node.args[1].repr);
+                    const lhs = this.compile(node.args[0]);
+                    const rhs = this.compile(node.args[1]);
                     return `(${lhs}&&${rhs})`;
                 }
                 case 'do': {
-                    const lhs = this.compile(node.args[0].repr);
-                    const rhs = this.compile(node.args[1].repr);
+                    const lhs = this.compile(node.args[0]);
+                    const rhs = this.compile(node.args[1]);
                     return `(${lhs},${rhs})`;
                 }
                 case 'if': {
-                    const cond = this.compile(node.args[0].repr);
-                    const ift = this.compile(node.args[1].repr);
-                    const iff = this.compile(node.args[2].repr);
-                    return `(${cond}?${ift}:${iff})`;
+                    const cond = this.compile(node.args[0]);
+                    const ift = this.compile(node.args[1]);
+                    const iff = this.compile(node.args[2]);
+                    return `(${cond}!==0n?${ift}:${iff})`;
                 }
                 case 'for': {
                     const name = node.args[0].repr;
-                    const start = this.compile(node.args[1].repr);
-                    const body = this.compile(node.args[2].repr);
-                    return `((${mangle(name)})=>{do{const t=${body};if(t){return ${mangle(name)};}return ${mangle(name)}=t;}while(true);})(${start})`;
+                    const start = this.compile(node.args[1]);
+                    const body = this.compile(node.args[2]);
+                    return `(await(async ${mangle(name)}=>{while(true){const t=${body};if(t===0n){return ${mangle(name)};}${mangle(name)}=t;}})(${start}))`;
                 }
                 case 'let': {
                     const name = node.args[0].repr;
                     const value = this.compile(node.args[1]);
                     const then = this.compile(node.args[2]);
-                    return `((async ${mangle(name)}=>${then})(${value}))`;
+                    return `(await((async ${mangle(name)}=>${then})(${value})))`;
                 }
                 case 'call': {
                     const args = node.args.map(arg => this.compile(arg));
@@ -76,11 +76,12 @@ const Compiler = class {
         } else if (node instanceof Value) {
             if (typeof node.repr === 'string') {
                 const chars = Array.from(node.repr).map(x => String(x.charCodeAt(0))).join(',');
-                return `String.fromCharCode(${chars})`;
+                return `rt_str([${chars}])`;
             } else {
                 return `rt_u64(${node.repr}n)`;
             }
         }
+        console.log(node);
     }
 };
 
