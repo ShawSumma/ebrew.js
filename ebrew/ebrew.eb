@@ -481,7 +481,6 @@ if  cmpa index arity
 do  x86_64-pop   -depth -out x86_64-string-rax
 do  put '\n
     put-string x86_64-string-rax
-    
     put '*
     put-string x86_64-string-call
     x86_64-call-end-pop 5 arity -depth x86_64-string-r9
@@ -495,7 +494,7 @@ do  put '\n
 
 (x86_64-decl-in -detail span -out)
 do  x86_64-section-header x86_64-mangle-span span -out
-    store -detail shl 31 1
+    store -detail shl 63 1
 
 (x86_64-decl-end -detail arity -out)
     put-string x86_64-string-ret

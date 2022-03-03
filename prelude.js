@@ -79,16 +79,19 @@ const rt_load = (name) => {
                     }
                     return curbrk;
                 case 0:
-                    const maxi = rsi + rdx
-                    for (let i = rsi; i < maxi; i++) {
-                        let buffer = new Uint8Array(1);
+                    let head = 0;
+                    outer: while (head < rdx) {
+                        let buffer = new Uint8Array(1024);
                         fs.readSync(rdi, buffer);
-                        if (buffer[0] === 0) {
-                            return i - rsi;
+                        for (const chr of buffer) {
+                            if (chr === 0) {
+                                break outer;
+                            }
+                            memview.setUint8(head, chr);
                         }
-                        memview.setUint8(i, buffer[0]);
+                        memview.setUint8(head + rsi, buffer[0]);
                     }
-                    return rdx;
+                    return head;
                 case 1:
                     const maxo = rsi + rdx;
                     let out = '';
