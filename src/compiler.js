@@ -18,17 +18,17 @@ const Compiler = class {
                     for (const def of node.args) {
                         ret.push(this.compile(def));
                     }
-                    return `(async()=>{${ret.join('')}return await eb__start();})()`;
+                    return `(()=>{${ret.join('')}return eb__start();})()`;
                 }
                 case 'func': {
                     const name = node.args[0].repr;
                     const args = node.args.slice(1, -1).map(arg => mangle(arg.args[0].repr));
                     const then = this.compile(node.args[node.args.length - 1]);
-                    return `const ${mangle(name)}=async(${args.join(',')})=>${then};`;
+                    return `const ${mangle(name)}=(${args.join(',')})=>${then};`;
                 }
                 case 'extern': {
                     const name = node.args[0].repr;
-                    return `const ${mangle(name)}=await rt_load("${name}");`;
+                    return `const ${mangle(name)}=rt_load("${name}");`;
                 }
                 case 'or': {
                     const lhs = this.compile(node.args[0]);
@@ -49,23 +49,23 @@ const Compiler = class {
                     const cond = this.compile(node.args[0]);
                     const ift = this.compile(node.args[1]);
                     const iff = this.compile(node.args[2]);
-                    return `(${cond}!==0n?${ift}:${iff})`;
+                    return `(${cond}?${ift}:${iff})`;
                 }
                 case 'for': {
                     const name = node.args[0].repr;
                     const start = this.compile(node.args[1]);
                     const body = this.compile(node.args[2]);
-                    return `(await(async ${mangle(name)}=>{while(true){const t=${body};if(t===0n){return ${mangle(name)};}${mangle(name)}=t;}})(${start}))`;
+                    return `((${mangle(name)}=>{while(true){const t=${body};if(!t){return ${mangle(name)};}${mangle(name)}=t;}})(${start}))`;
                 }
                 case 'let': {
                     const name = node.args[0].repr;
                     const value = this.compile(node.args[1]);
                     const then = this.compile(node.args[2]);
-                    return `(await((async ${mangle(name)}=>${then})(${value})))`;
+                    return `((( ${mangle(name)}=>${then})(${value})))`;
                 }
                 case 'call': {
                     const args = node.args.map(arg => this.compile(arg));
-                    return `(await ${args[0]}(${args.slice(1).join(',')}))`;
+                    return `(${args[0]}(${args.slice(1).join(',')}))`;
                 }
                 default:
                     console.log(node.form);
@@ -78,7 +78,7 @@ const Compiler = class {
                 const chars = Array.from(node.repr).map(x => String(x.charCodeAt(0))).join(',');
                 return `rt_str([${chars}])`;
             } else {
-                return `rt_u64(${node.repr}n)`;
+                return `${node.repr}`;
             }
         }
         console.log(node);
