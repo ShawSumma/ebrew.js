@@ -481,7 +481,6 @@ if  cmpa index arity
 do  x86_64-pop   -depth -out x86_64-string-rax
 do  put '\n
     put-string x86_64-string-rax
-    
     put '*
     put-string x86_64-string-call
     x86_64-call-end-pop 5 arity -depth x86_64-string-r9
