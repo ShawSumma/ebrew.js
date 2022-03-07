@@ -6,7 +6,7 @@
   "scripts": {},
   "repository": {
     "type": "git",
-    "url": "./"
+    "path": "./"
   },
   "author": "Shaw Summa",
   "license": "MIT"

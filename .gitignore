@@ -2,3 +2,4 @@ out.*
 .vscode
 node_modules
 out.js
+package-lock.json

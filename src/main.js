@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const { Parser } = require('./parser.js');
 const { Compiler } = require('./compiler.js');
 const fs = require('fs').promises;

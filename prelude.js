@@ -72,9 +72,6 @@ const rt_load = (name) => {
         case 'linux': return (rdi, rsi, rdx, rcx, r8, r9, rax) => {
             switch (rax) {
                 case 60n:
-                    if (rdi === 0n) {
-                        return 0n; 
-                    }
                     throw new Error(`exit: ${rdi}`);
                 case 12n:
                     if (rdi !== 0n) {
