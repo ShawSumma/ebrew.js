@@ -18,7 +18,7 @@ const Compiler = class {
                     for (const def of node.args) {
                         ret.push(this.compile(def));
                     }
-                    return `(async()=>{${ret.join('')}return await eb__start();})().catch(() => {})`;
+                    return `(async()=>{${ret.join('')}return await main(eb__start);})().catch((e) => {throw e;})`;
                 }
                 case 'func': {
                     const name = node.args[0].repr;

@@ -24,6 +24,26 @@ const rt_str = (s) => {
     return ret;
 }
 
+const Exit = class extends Error {
+    constructor(code) {
+        super(`exit ${code}`);
+        this.code = code;
+    }
+}
+
+const main = async (f) => {
+    try {
+        await f();
+    } catch (e) {
+        if (e instanceof Exit) {
+            return e.code;
+        } else {
+            throw e;
+        }
+    }
+    return 0;
+};
+
 const rt_load = (name) => {
     switch (name) {
         case 'word': return () => 5;
@@ -35,10 +55,10 @@ const rt_load = (name) => {
         };
         case 'neg': return (n) => -n|0;
         case 'not': return (n) => n === 0 ? 1 : 0;
-        case 'cmpa': return (x, y) => {
+        case 'above': return (x, y) => {
             return y > x ? 1 : 0;
         };
-        case 'cmpe': return (x, y) => {
+        case 'equal': return (x, y) => {
             return y === x ? 1 : 0;
         };
         case 'load': return (n) => {
@@ -68,8 +88,8 @@ const rt_load = (name) => {
         };
         case 'linux': return (rdi, rsi, rdx, rcx, r8, r9, rax) => {
             switch (rax) {
-                case 60n:
-                    throw new Error(`exit: ${rdi}`);
+                case 60:
+                    throw new Exit(rdi);
                 case 12:
                     if (rdi !== 0) {
                         curbrk = rdi;
