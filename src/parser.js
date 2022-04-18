@@ -84,18 +84,19 @@ const State = class {
 };
 
 const Binding = class {
-    constructor(name, args = null) {
+    constructor(name, generics=null, args = null) {
         this.name = name;
         this.args = args;
-        if (args === null) {
-            this.func = false;
-        } else {
-            this.func = true;
-        }
+        this.generics = generics;
+        this.func = generics != null;
     }
 
     toString() {
-        return `${this.name.repr} ${this.args.map(String).join(' ')}`;
+        if (this.func) {
+            return `(${this.name} [${this.generics.join(' ')}] ${this.args.map(String).join(' ')})`;
+        } else {
+            return this.name;
+        }
     }
 
     toType() {
@@ -104,9 +105,9 @@ const Binding = class {
             for (const arg of this.args) {
                 args.push(arg.toType());
             }
-            return new Form("tfunc", this.name, args);
+            return new Form("type.func", this.name, args);
         } else {
-            return new Form("tvalue", this.name);
+            return new Form("type.value", this.name);
         }
     }
 };
@@ -123,6 +124,7 @@ const Parser = class {
     constructor(binding) {
         this.defs = [{}];
         this.state = new State(binding);
+        this.generics = [];
     }
 
     pos() {
@@ -190,6 +192,7 @@ const Parser = class {
             return [];
         }
         this.state.skip();
+        const generic = [];
         const args = [];
         while (true) {
             this.skipSpace();
@@ -200,30 +203,77 @@ const Parser = class {
                 this.state.skip();
                 break;
             } else if (this.state.first() === '(') {
-                const subargs = this.readArgArray();
+                const [generic, subargs] = this.readArgArray();
                 if (subargs.length === 0) {
                     this.raise('arglist: empty parens found in definition arguments');
                 }
-                args.push(new Binding(subargs[0].name, subargs.slice(1)));
+                args.push(new Binding(subargs[0].name, generic, subargs.slice(1)));
+            } else if (this.state.first() === '[') {
+                this.state.skip();
+                while (true) {
+                    this.skipSpace();
+                    if (this.state.done()) {
+                        this.raise('toplevel: expected closing square bracket for generics');
+                        return [[],[]];
+                    }
+                    if (this.state.first() === ']') {
+                        this.state.skip();
+                        break;
+                    }
+                    generic.push(this.readName());
+                }
             } else {
                 const name = this.readName();
                 args.push(new Binding(name));
             }
         }
         this.skipSpace();
-        return args;
+        return [generic, args];
+    }
+
+    readGeneric() {
+        this.skipSpace();
+        if (this.state.first() !== '(') {
+            return new Binding(this.readName());
+        } else {
+            const [generic, subargs] = this.readArgArray();
+            if (subargs.length === 0) {
+                this.raise('generic arglist: empty parens found');
+            }
+            return new Binding(subargs[0].name, generic, subargs.slice(1));
+        }
     }
 
     readCall(name) {
         for (let index = this.defs.length - 1; index >= 0; index--) {
             const scope = this.defs[index];
             if (scope[name.repr] != null) {
-                if (scope[name.repr].func) {
+                const binding = scope[name.repr];
+                if (binding.func) {
+                    const collect = {};
                     const argValues = [name];
-                    for (const argType of scope[name.repr].args) {
-                        argValues.push(this.readExprMatch(argType));
+                    for (const generic of binding.generics) {
+                        collect[generic.repr] = this.readGeneric();
                     }
-                    return new Form('call', argValues);
+                    const original = this.generics;
+                    this.generics = {...original, ...collect};
+                    const defObj = {};
+                    this.defs.push(defObj);
+                    try {
+                        for (const argType of binding.args) {
+                            const generic = this.generics[argType.name.repr];
+                            if (generic != null) {
+                                defObj[argType.name.repr] = generic;
+                                argValues.push(this.readExprMatch(generic));
+                            } else {
+                                argValues.push(this.readExprMatch(argType));
+                            }
+                        }
+                        return new Form('call', argValues);
+                    } finally {
+                        this.generics = original;
+                        this.defs.pop();
+                    }
                 } else {
                     return name;
                 }
@@ -232,153 +282,62 @@ const Parser = class {
         return this.raise(`variable not defined: ${name}`);
     }
 
+    readSingle() {
+        const name = this.readName();
+        if (name.repr.length === 0) {
+            return this.raise('expected expression');
+        }
+        let res = null;
+        if (/^[0-9]+$/.test(name.repr)) {
+            res = new Value(BigInt(name.repr));
+        } else {
+            res = this.readCall(name);
+        }
+        this.skipSpace();
+        return res;
+    }
+
+    readFunc(args) {
+        const names = []
+        const argObj = {};
+        for (const arg of args) {
+            const generic = this.generics[arg.name.repr];
+            if (generic != null) {
+                argObj[generic.name.repr] = generic;
+                names.push(generic.name);
+            } else {
+                argObj[arg.name.repr] = arg;
+                names.push(arg.name);
+            }
+        }
+        this.defs.push(argObj);
+        try {
+            const expr = this.readExprMatch(new Binding(null));
+            return new Form('lambda', ...names, expr);
+        } finally {
+            this.defs.pop();
+        }
+    }
+
     readExprMatch(type) {
         this.skipSpace();
         if (this.state.done()) {
             return this.raise('expected expression at end of file');
         }
-        if (this.state.first() === '\"') {
-            this.state.skip();
-            const value = [];
-            if (this.state.done()) {
-                return this.raise("expected string literal at end of file");
-            }
-            while (this.state.first() !== '\"') {
-                const chr = this.state.read();
-                if (chr === '\n') {
-                    return this.raise("unexpected newline in string");
-                } else if (chr === '\\') {
-                    const esc = this.state.read();
-                    switch (esc) {
-                        case '\'':
-                        case '\"':
-                        case '\\':
-                            value.push(esc);
-                            break;
-                        case 'n':
-                            value.push('\n');
-                            break;
-                        case 't':
-                            value.push('\t');
-                            break;
-                        case 'r':
-                            value.push('\r');
-                            break;
-                        default:
-                            this.raise(`unknown escape sequence: \\${esc}`);
-                    }
-                } else {
-                    value.push(chr);
-                }
-                if (this.state.done()) {
-                    this.raise("unterminated string literal");
-                }
-            }
-            this.state.skip();
-            return new Value(value.join(''));
+        if (type.func) {
+            return this.readFunc(type.args);
+        } else {
+            return this.readSingle();
         }
-        if (this.state.first() === '\'') {
-            this.state.skip();
-            let chr = this.state.read();
-            if (chr === '\\') {
-                const esc = this.state.read();
-                switch (esc) {
-                    case '\'':
-                    case '\"':
-                    case '\\':
-                        chr = esc;
-                        break;
-                    case 'n':
-                        chr = '\n';
-                        break;
-                    case 't':
-                        chr = '\t';
-                        break;
-                    case 'r':
-                        chr = '\r';
-                        break;
-                    default:
-                        return this.raise(`unknown character escape sequence: '\\${chr}`);
-                }
-            }
-            if (!this.state.done() && this.state.first() !== '\'') {
-                this.state.skip();
-            }
-            return new Value(BigInt(chr.charCodeAt(0)));
-        }
-        const startOpenParen = this.state.first() === '(';
-        if (startOpenParen) {
-            this.state.skip();
-            this.skipSpace();
-            if (this.state.done()) {
-                return this.raise('expected expression after paren at end of file');
-            }
-        }
-        const name = this.readName();
-        if (startOpenParen) {
-            this.skipSpace();
-            if (!this.state.done() && this.state.first() === ')') {
-                this.state.skip();
-                type.func = true;
-            }
-        }
-        if (name.repr.length === 0) {
-            return this.raise('expected expression');
-        }
-        let res = null;
-        switch (name.repr) {
-            case 'or':
-                res = new Form('or', this.readExprMatch(type), this.readExprMatch(type));
-                break;
-            case 'and':
-                res = new Form('and', this.readExprMatch(type), this.readExprMatch(type));
-                break;
-            case 'do':
-                res = new Form('do', this.readExprMatch(new Binding(null)), this.readExprMatch(type));
-                break;
-            case 'if':
-                res = new Form('if', this.readExprMatch(new Binding(null)), this.readExprMatch(type), this.readExprMatch(type));
-                break;
-            case 'for':
-            case 'let':
-                const id = this.readName();
-                const value = this.readExprMatch(new Binding(null));
-                this.defs.push({});
-                let inscope = null;
-                try {
-                    this.defs[this.defs.length - 1][id.repr] = new Binding(id.repr);
-                    inscope = this.readExprMatch(type);
-                } finally {
-                    this.defs.pop();
-                }
-                res = new Form(name.repr, id, value, inscope);
-                break;
-            default:
-                if (/^[0-9]+$/.test(name.repr)) {
-                    res = new Value(BigInt(name.repr));
-                } else if (type.func || name instanceof Value) {
-                    res = name;
-                } else {
-                    res = this.readCall(name);
-                }
-                break;
-        }
-        this.skipSpace();
-        if (startOpenParen) {
-            if (!this.state.done() && this.state.first() === ')') {
-                this.state.skip();
-            }
-        }
-        return res;
     }
 
     readDef() {
-        const vals = this.readArgArray();
+        const [generic, vals] = this.readArgArray();
         if (vals.length === 0) {
             return this.raise('toplevel: empty definiton');
         }
         const fname = vals.shift().name;
-        this.defs[0][fname.repr] = new Binding(fname, vals);
+        this.defs[0][fname.repr] = new Binding(fname, generic, vals);
         this.defs.push({});
         try {
             for (const val of vals) {
@@ -412,6 +371,12 @@ const Parser = class {
             all.push(def);
         }
         return new Form('program', all);
+    }
+
+    readAll() {
+        const arg = this.readDefs();
+        console.log(String(arg));
+        return arg;
     }
 };
 

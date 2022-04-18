@@ -1,0 +1,11 @@
+
+(print x) ?
+
+(var [x] x (in x))
+in x
+
+(main) 
+print
+    var (let [a] a (in a))
+        in a
+        let x 1 x
