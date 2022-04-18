@@ -375,7 +375,6 @@ const Parser = class {
 
     readAll() {
         const arg = this.readDefs();
-        console.log(String(arg));
         return arg;
     }
 };

@@ -8,4 +8,4 @@ in x
 print
     var (let [a] a (in a))
         in a
-        let x 1 x
+        let (x y) y x 1

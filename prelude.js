@@ -1,5 +1,3 @@
-const fs = require('fs');
-
 let str = 1;
 let endstr = 1 << 16;
 let curbrk = endstr - 1;
@@ -52,7 +50,7 @@ const rt_load = (name) => {
             } else {
                 return f();
             }
-        };
+        };3
         case 'print': return (a) => {
             console.log(a);
             return 0;
