@@ -283,6 +283,78 @@ const Parser = class {
     }
 
     readSingle() {
+        if (this.state.done()) {
+            return this.raise('expected expression at end of file');
+        }
+        if (this.state.first() === '\"') {
+            this.state.skip();
+            const value = [];
+            if (this.state.done()) {
+                return this.raise("expected string literal at end of file");
+            }
+            while (this.state.first() !== '\"') {
+                const chr = this.state.read();
+                if (chr === '\n') {
+                    return this.raise("unexpected newline in string");
+                } else if (chr === '\\') {
+                    const esc = this.state.read();
+                    switch (esc) {
+                        case '\'':
+                        case '\"':
+                        case '\\':
+                            value.push(esc);
+                            break;
+                        case 'n':
+                            value.push('\n');
+                            break;
+                        case 't':
+                            value.push('\t');
+                            break;
+                        case 'r':
+                            value.push('\r');
+                            break;
+                        default:
+                            this.raise(`unknown escape sequence: \\${esc}`);
+                    }
+                } else {
+                    value.push(chr);
+                }
+                if (this.state.done()) {
+                    this.raise("unterminated string literal");
+                }
+            }
+            this.state.skip();
+            return new Value(value.join(''));
+        }
+        if (this.state.first() === '\'') {
+            this.state.skip();
+            let chr = this.state.read();
+            if (chr === '\\') {
+                const esc = this.state.read();
+                switch (esc) {
+                    case '\'':
+                    case '\"':
+                    case '\\':
+                        chr = esc;
+                        break;
+                    case 'n':
+                        chr = '\n';
+                        break;
+                    case 't':
+                        chr = '\t';
+                        break;
+                    case 'r':
+                        chr = '\r';
+                        break;
+                    default:
+                        return this.raise(`unknown character escape sequence: '\\${chr}`);
+                }
+            }
+            if (!this.state.done() && this.state.first() !== '\'') {
+                this.state.skip();
+            }
+            return new Value(BigInt(chr.charCodeAt(0)));
+        }
         const name = this.readName();
         if (name.repr.length === 0) {
             return this.raise('expected expression');
