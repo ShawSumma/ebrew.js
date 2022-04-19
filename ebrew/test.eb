@@ -1,11 +1,16 @@
 
 (print x) ?
+(mul y x) ? 
+(add y x) ? 
 
-(var [x] x (in x))
+(do y x) x
+
+(let [x] x (in x))
 in x
 
 (main) 
 print
-    var (let [a] a (in a))
-        in a
-        let (x y) y x 1
+let (let2 [x y] x y (inx x y)) inx x y
+    let2 v k
+         1 2
+         add v k

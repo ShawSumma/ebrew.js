@@ -250,13 +250,11 @@ const Parser = class {
             if (scope[name.repr] != null) {
                 const binding = scope[name.repr];
                 if (binding.func) {
-                    const collect = {};
                     const argValues = [name];
+                    const original = {...this.generics};
                     for (const generic of binding.generics) {
-                        collect[generic.repr] = this.readGeneric();
+                        this.generics[generic.repr] = this.readGeneric();
                     }
-                    const original = this.generics;
-                    this.generics = {...original, ...collect};
                     const defObj = {};
                     this.defs.push(defObj);
                     try {
@@ -264,7 +262,10 @@ const Parser = class {
                             const generic = this.generics[argType.name.repr];
                             if (generic != null) {
                                 defObj[argType.name.repr] = generic;
+                                const ogen = this.generics[argType.name.repr];
+                                this.generics[argType.name.repr] = null;
                                 argValues.push(this.readExprMatch(generic));
+                                this.generics[argType.name.repr] = ogen;
                             } else {
                                 argValues.push(this.readExprMatch(argType));
                             }
@@ -372,6 +373,7 @@ const Parser = class {
     readFunc(args) {
         const names = []
         const argObj = {};
+        const generics = {...this.generics};
         for (const arg of args) {
             const generic = this.generics[arg.name.repr];
             if (generic != null) {
@@ -382,11 +384,15 @@ const Parser = class {
                 names.push(arg.name);
             }
         }
+        for (const name in argObj) {
+            this.generics[name] = null;
+        }
         this.defs.push(argObj);
         try {
             const expr = this.readExprMatch(new Binding(null));
             return new Form('lambda', ...names, expr);
         } finally {
+            this.generics = generics;
             this.defs.pop();
         }
     }

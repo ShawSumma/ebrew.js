@@ -36,25 +36,25 @@ const rt_load = (name) => {
             return 0;
         };
         case 'above': return (x, y) => {
-            return y > x ? 1 : 0;
+            return y > x;
         };
         case 'equal': return (x, y) => {
-            return y === x ? 1 : 0;
+            return y === x;
         };
         case 'add': return (x, y) => {
-            return y + x|0;
+            return y + x;
         };
         case 'sub': return (x, y) => {
-            return y - x|0;
+            return y - x;
         };
         case 'mul': return (x, y) => {
-            return y * x|0;
+            return y * x;
         };
         case 'div': return (x, y) => {
-            return y / x|0;
+            return y / x;
         };
         case 'mod': return (x, y) => {
-            return y % x|0;
+            return y % x;
         };
     }
     throw new Error(`unknown: [${name}]`);
