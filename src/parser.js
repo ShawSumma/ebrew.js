@@ -27,7 +27,7 @@ const Form = class {
     }
 
     toString() {
-        return `(${this.form}: ${this.args.map(String).join(' ')})`;
+        return `(${this.form}: ${this.args.map(x => String(x)).join(' ')})`;
     }
 };
 
@@ -84,10 +84,11 @@ const State = class {
 };
 
 const Binding = class {
-    constructor(name, generics=null, args = null) {
+    constructor(name, generics=null, args = null, known = []) {
         this.name = name;
         this.args = args;
         this.generics = generics;
+        this.known = known;
         this.func = generics != null;
     }
 
@@ -124,7 +125,7 @@ const Parser = class {
     constructor(binding) {
         this.defs = [{}];
         this.state = new State(binding);
-        this.generics = [];
+        this.generics = {};
     }
 
     pos() {
@@ -171,7 +172,7 @@ const Parser = class {
         const build = [];
         while (!this.state.done()) {
             const first = this.state.first();
-            if (!/[0-9A-Za-z]/.test(first) && first != '-' && first != '_') {
+            if (!/[0-9A-Za-z]/.test(first) && first != '-' && first != '_' ) {
                 break;
             }
             build.push(first);
@@ -185,7 +186,7 @@ const Parser = class {
         return ret;
     }
 
-    readArgArray() {
+    readArgArray(known = []) {
         this.skipSpace();
         if (this.state.first() !== '(') {
             this.raise("toplevel: expected an open paren");
@@ -203,11 +204,11 @@ const Parser = class {
                 this.state.skip();
                 break;
             } else if (this.state.first() === '(') {
-                const [generic, subargs] = this.readArgArray();
+                const [genricargs, subargs] = this.readArgArray([...known]);
                 if (subargs.length === 0) {
                     this.raise('arglist: empty parens found in definition arguments');
                 }
-                args.push(new Binding(subargs[0].name, generic, subargs.slice(1)));
+                args.push(new Binding(subargs[0].name, genricargs, subargs.slice(1), known));
             } else if (this.state.first() === '[') {
                 this.state.skip();
                 while (true) {
@@ -220,7 +221,9 @@ const Parser = class {
                         this.state.skip();
                         break;
                     }
-                    generic.push(this.readName());
+                    const name = this.readName();
+                    generic.push(new Ident(name.repr));
+                    known.push(name.repr);
                 }
             } else {
                 const name = this.readName();
@@ -252,20 +255,24 @@ const Parser = class {
                 if (binding.func) {
                     const argValues = [name];
                     const original = {...this.generics};
-                    for (const generic of binding.generics) {
-                        this.generics[generic.repr] = this.readGeneric();
-                    }
+                    const impls = [];
                     const defObj = {};
+                    for (const generic of binding.generics) {
+                        const bind = this.readGeneric();
+                        this.generics[generic.repr] = bind;
+                        defObj[bind.name.repr] = bind;
+                        impls.push(generic.repr);
+                    }
                     this.defs.push(defObj);
                     try {
                         for (const argType of binding.args) {
-                            const generic = this.generics[argType.name.repr];
-                            if (generic != null) {
+                            if (binding.known.indexOf(argType.name.repr) !== -1 || impls.indexOf(argType.name.repr) !== -1) {
+                                const generic = this.generics[argType.name.repr];
+                                if (generic == null) {
+                                    throw new Error('unknown generic');
+                                }
                                 defObj[argType.name.repr] = generic;
-                                const ogen = this.generics[argType.name.repr];
-                                this.generics[argType.name.repr] = null;
                                 argValues.push(this.readExprMatch(generic));
-                                this.generics[argType.name.repr] = ogen;
                             } else {
                                 argValues.push(this.readExprMatch(argType));
                             }
@@ -370,30 +377,34 @@ const Parser = class {
         return res;
     }
 
-    readFunc(args) {
+    readFunc(type) {
         const names = []
         const argObj = {};
-        const generics = {...this.generics};
-        for (const arg of args) {
-            const generic = this.generics[arg.name.repr];
-            if (generic != null) {
-                argObj[generic.name.repr] = generic;
-                names.push(generic.name);
-            } else {
-                argObj[arg.name.repr] = arg;
-                names.push(arg.name);
-            }
-        }
-        for (const name in argObj) {
-            this.generics[name] = null;
-        }
+        const known = [];
+        const original = {...this.generics};
         this.defs.push(argObj);
         try {
+            for (const generic of type.generics) {
+                const bind = new Binding(generic);
+                this.generics[generic.repr] = bind;
+                argObj[generic.repr] = bind;
+                known.push(generic.repr);
+            }
+            for (const arg of type.args) {
+                if (type.known.indexOf(arg.name.repr) !== -1 || known.indexOf(arg.name.repr) !== -1) {
+                    const generic = this.generics[arg.name.repr];
+                    argObj[arg.name.repr] = generic;
+                    names.push(generic.name);
+                } else {
+                    argObj[arg.name.repr] = arg;
+                    names.push(arg.name);
+                }
+            }
             const expr = this.readExprMatch(new Binding(null));
-            return new Form('lambda', ...names, expr);
+            return new Form('lambda', new Form('args', names), expr);
         } finally {
-            this.generics = generics;
             this.defs.pop();
+            this.generics = original;
         }
     }
 
@@ -403,19 +414,23 @@ const Parser = class {
             return this.raise('expected expression at end of file');
         }
         if (type.func) {
-            return this.readFunc(type.args);
+            return this.readFunc(type);
         } else {
             return this.readSingle();
         }
     }
 
     readDef() {
-        const [generic, vals] = this.readArgArray();
+        const [generics, vals] = this.readArgArray();
         if (vals.length === 0) {
             return this.raise('toplevel: empty definiton');
         }
+        this.generics = {};
+        for (const generic of generics) {
+            this.generics[generic.repr] = generic;
+        }
         const fname = vals.shift().name;
-        this.defs[0][fname.repr] = new Binding(fname, generic, vals);
+        this.defs[0][fname.repr] = new Binding(fname, generics, vals);
         this.defs.push({});
         try {
             for (const val of vals) {
@@ -452,8 +467,8 @@ const Parser = class {
     }
 
     readAll() {
-        const arg = this.readDefs();
-        return arg;
+        const rval = this.readDefs();
+        return rval;
     }
 };
 

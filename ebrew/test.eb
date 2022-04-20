@@ -8,9 +8,10 @@
 (let [x] x (in x))
 in x
 
-(main) 
+(main)
 print
-let (let2 [x y] x y (inx x y)) inx x y
+let (let2 [x y] x y (in x y)) in x y
+    add 2
     let2 v k
          1 2
          add v k

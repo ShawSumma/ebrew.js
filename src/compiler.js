@@ -37,8 +37,8 @@ const Compiler = class {
                     return `(${args[0]}(${args.slice(1).join(',')}))`;
                 }
                 case 'lambda': {
-                    const args = node.args.slice(0, -1).map(arg => mangle(arg.repr));
-                    return `((${args.join(',')})=>${this.compile(node.args[node.args.length-1])})`
+                    const args = node.args[0].args.map(arg => mangle(arg.repr));
+                    return `((${args.join(',')})=>${this.compile(node.args[1])})`
                 }
                 default:
                     console.log(node.form);
