@@ -15,12 +15,11 @@ const compileFile = async (inpath) => {
     const interp = new Compiler();
     const js = interp.compile(ast);
     const prelude = await fs.readFile('prelude.js');
-    return AsyncFunction(`${prelude}${js}`);
+    return eval(`${prelude}${js}`);
 };
 
 const main = async (inpath) => {
-    const func = await compileFile(inpath);
-    await func();
+    await compileFile(inpath);
 };
 
 main(process.argv[2])

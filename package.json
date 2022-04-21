@@ -9,5 +9,8 @@
     "path": "./"
   },
   "author": "Shaw Summa",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "raylib": "^0.9.0"
+  }
 }
