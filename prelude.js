@@ -32,6 +32,14 @@ const rt_load = (name) => {
             return () => raylib[name];
         }
     }
+    if (/^math-/.test(name)) {
+        name = name.slice(5);
+        if (Math[name] instanceof Function) {
+            return Math[name];
+        } else {
+            return () => Math[name];
+        }
+    }
     switch (name) {
         case 'if': return (c, t, f) => {
             if (c) {
@@ -39,6 +47,15 @@ const rt_load = (name) => {
             } else {
                 return f();
             }
+        };
+        case 'time-seconds': {
+            return () => new Date().getSeconds();
+        };
+        case 'time-minutes': {
+            return () => new Date().getMinutes();
+        };
+        case 'time-hours': {
+            return () => new Date().getHours();
         };
         case 'random': return (low, high) => {
             return Math.floor(Math.random()*(high-low)+low);

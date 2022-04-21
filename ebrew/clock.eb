@@ -1,0 +1,118 @@
+
+(print obj) ?
+(str obj) ?
+
+(add y x) ? 
+(sub y x) ? 
+(mul y x) ? 
+(div y x) ? 
+(mod y x) ? 
+(not x) ?
+(above y x) ?
+(equal y x) ?
+
+(if c (t) (f)) ?
+(while (c) (t)) ?
+
+(random low high) ?
+
+(object) ?
+(set obj prop val) ?
+(get obj prop) ?
+
+(InitWindow x y name) ?
+(CloseWindow) ?
+(WindowShouldClose) ?
+(GetFrameTime) ?
+
+(math-sin x) ?
+(math-cos x) ?
+(math-atan2 x y) ?
+(math-PI) ?
+
+(time-seconds) ?
+(time-minutes) ?
+(time-hours) ?
+
+(KEY_UP) ?
+(KEY_DOWN) ?
+(KEY_RIGHT) ?
+(KEY_LEFT) ?
+(IsKeyDown key) ?
+
+(BeginDrawing) ?
+(EndDrawing) ?
+
+(DrawCircleLines x1 x2 r color) ?
+(DrawLine x1 y1 x2 y2 color) ?
+(DrawRectangle x y sizex sizey color) ?
+(DrawText text x y size color) ?
+(ClearBackground color) ?
+
+(RAYWHITE) ?
+(RED) ?
+(ORANGE) ?
+(YELLOW) ?
+(GREEN) ?
+(BLUE) ?
+(PURPLE) ?
+(WHITE) ?
+(BLACK) ?
+
+(do y x) x
+(do0 y x) y
+
+(let [x] x (in x))
+in x
+
+(and x (y)) if x y 0
+(or x (y))  if x x y 
+
+(deg-to-rad x)
+mul math-PI div 180 x
+
+(xdiv x y) div y x
+
+(second-hand xpos ypos size)
+let time sub 90 div 60 mul 360 time-seconds
+let x mul size math-cos deg-to-rad time
+let y mul size math-sin deg-to-rad time
+do  DrawLine xpos ypos add x xpos add y ypos BLACK
+    0
+
+(minute-hand xpos ypos size)
+let time sub 90 div 60 mul 360 add div 60 time-seconds time-minutes
+let x mul mul div 200 190 size math-cos deg-to-rad time
+let y mul mul div 200 190 size math-sin deg-to-rad time
+do  DrawLine xpos ypos add x xpos add y ypos BLACK
+    0
+
+(hour-hand xpos ypos size)
+let time sub 90 div 12 mul 360 add div 60 add div 60 time-seconds time-minutes time-hours
+let x mul mul div 200 150 size math-cos deg-to-rad time
+let y mul mul div 200 150 size math-sin deg-to-rad time
+do  DrawLine xpos ypos add x xpos add y ypos BLACK
+    0
+
+(draw-clock xpos ypos size)
+do  DrawCircleLines xpos ypos mul size div 200 210 BLACK
+do  second-hand xpos ypos size
+do  minute-hand xpos ypos size
+do  hour-hand xpos ypos size
+    0
+
+(frame store)
+    draw-clock 320 320 240
+
+(init-store)
+object
+
+(main)
+do  InitWindow 640 640 "Snake"
+let store init-store
+do  while not WindowShouldClose
+    do  BeginDrawing
+    do  ClearBackground WHITE
+    do  frame store
+        EndDrawing
+    CloseWindow
