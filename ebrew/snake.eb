@@ -103,7 +103,7 @@ do  set store "apple-row" apple-row
 (init-store rows cols)
 let store object
 do  set store "time-ms" 250
-do  set store "fail" 0
+do  set store "end" 0
 do  set store "world" init-world rows cols
 do  set store "head-row" div 2 rows
 do  set store "head-col" div 2 cols
@@ -156,7 +156,7 @@ let is-head and equal row head-row equal col head-col
 if is-head 
     if equal 0 cur-num
         set-cur get store "head"
-        set store "fail" 1
+        set store "end" 1
     if equal 0 cur-num
         set-cur 0
         set-cur sub if is-eating 0 1 cur-num
@@ -192,7 +192,7 @@ DrawRectangle
         block-color block-num head-num
 
 (frame store)
-if  get store "fail"
+if  get store "end"
     DrawText "YOU DIED" 20 20 96 RED
 do  handle-inputs store
 let frame get store "frame"
