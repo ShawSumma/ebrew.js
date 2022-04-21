@@ -68,6 +68,9 @@ const rt_load = (name) => {
                 v();
             }
         };
+        case 'cat': return (x, y) => {
+            return `${x}${y}`;
+        }
         case 'get': return (o, p) => {
             return o[p];
         };
