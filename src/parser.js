@@ -172,7 +172,7 @@ const Parser = class {
         const build = [];
         while (!this.state.done()) {
             const first = this.state.first();
-            if (!/[0-9A-Za-z]/.test(first) && first != '-' && first != '_' ) {
+            if (!/[0-9A-Za-z]/.test(first) && first !== '-' && first !== '_' ) {
                 break;
             }
             build.push(first);
