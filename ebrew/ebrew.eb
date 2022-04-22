@@ -1,0 +1,193 @@
+# builtin #
+
+(if c (t) (f)) ?
+
+(pair a b) ?
+(first p) ?
+(second p) ?
+
+(putchar c) ?
+
+(equal y x) ?
+(above y x) ?
+
+(add y x) ?
+(sub y x) ?
+(mul y x) ?
+(div y x) ?
+(mod y x) ?
+
+# common #
+
+(or x (y))
+if x x y
+
+(and x (y))
+if x y 0
+
+(not x)
+if x 0 1
+
+(do x y)
+y
+
+# variables #
+
+(let [val] val (in val))
+in val
+
+# looping #
+
+(range [name] start end step (then name))
+if  above 0 step
+    and above start end
+        do  then start
+            range name add step start end step then name
+    and not above start end
+        do then start
+            range name add step start end step then name
+
+(for [name] list (in name))
+and list
+do  in first list
+    for name second list in name
+
+# io #
+
+(magic-print x) ?
+
+(put-line)
+putchar '\n
+
+(put-str s)
+for c s putchar c
+
+(put-str-line s)
+do  put-str s
+    put-line
+
+(put-digit n)
+putchar add '0 mod 10 n
+
+(put-num-nonzero n)
+and above 0 n
+do  put-num-nonzero div 10 n
+    put-digit n
+
+(put-num n)
+if  n
+    put-num-nonzero n
+    put-digit 0
+
+(put-num-line n)
+do  put-num n
+    put-line
+
+# parser library #
+
+(parse-none str (then value str) (error))
+then 0 str
+
+(parse-any str (then value str) (error))
+if  str
+    then first str second str
+    error
+
+(parse-if str (func test) (then value str) (error))
+parse-any str
+    if  func value
+        then value str
+        error 
+    error
+
+(parse-value str value (then value str) (error))
+parse-if str equal value test
+    then value str
+    error
+
+(parse-range str low high (then value str) (error))
+parse-if str and not above test high not above low test
+    then value str
+    error
+
+(parse-or str (parse1 str (then value str) (error)) (parse2 str (then value str) (error)) (then value str) (error))
+parse1 str
+    then value str
+    parse2 str
+        then value str
+        error
+
+(parse-and str (parse1 str (then value str) (error)) (parse2 str (then value str) (error)) (then value str) (error))
+parse1 str
+    let v1 value
+    parse2 str
+        let v2 value
+        then pair v1 v2 str
+        error
+    error
+
+(parse-zero-or-more str (parse1 str (then value str) (error)) (then value str) (error))
+parse-and str
+    parse1 str
+        then value str
+        error
+    parse-zero-or-more str
+        parse1 str 
+            then value str
+            error
+        then value str
+        error
+    then value str
+    then 0 str
+
+(parse-one-or-more str (parse1 str (then value str) (error)) (then value str) (error))
+parse-and str
+    parse1 str
+        then value str
+        error
+    parse-zero-or-more str
+        parse1 str 
+            then value str
+            error
+        then value str
+        error
+    then value str
+    error
+
+# example #
+
+(within-range test low high)
+and not above test high not above low test
+
+(is-word-char-init test)
+or  within-range test 'a 'z
+or  within-range test 'A 'Z
+or  equal test '-
+    equal test '_
+
+(is-word-char test)
+or  is-word-char-init test
+    within-range test '0 '9
+
+(parse-word str (then value str) (error))
+parse-and str
+    parse-if str is-word-char-init test
+        then value str
+        error
+    parse-zero-or-more str
+        parse-if str is-word-char test
+            then value str
+            error
+        then value str
+        error
+    then value str
+    error
+
+# main #
+
+(main)
+let str "hello world"
+put-str-line
+parse-word str
+    "the string does start with a valid word"
+    "the string does not start with a valid word"

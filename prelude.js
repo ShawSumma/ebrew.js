@@ -1,98 +1,46 @@
-const raylib = require('raylib');
-
 const rt_str = (s) => {
-    return String.fromCharCode(...s);
-}
-
-const Exit = class extends Error {
-    constructor(code) {
-        super(`exit ${code}`);
-        this.code = code;
+    let ret = 0;
+    for (let index = s.length - 1; index >= 0; index--) {
+        ret = [s[index], ret];
     }
+    return ret;
 }
 
 const main = async (f) => {
-    try {
-        await f();
-    } catch (e) {
-        if (e instanceof Exit) {
-            return e.code;
-        } else {
-            throw e;
-        }
-    }
-    return 0;
+    return await f();
 };
 
 const rt_load = (name) => {
-    if (raylib[name] != null) {
-        if (raylib[name] instanceof Function) {
-            return raylib[name];
-        } else {
-            return () => raylib[name];
-        }
-    }
-    if (/^math-/.test(name)) {
-        name = name.slice(5);
-        if (Math[name] instanceof Function) {
-            return Math[name];
-        } else {
-            return () => Math[name];
-        }
-    }
     switch (name) {
         case 'if': return (c, t, f) => {
-            if (c) {
+            if (c !== 0) {
                 return t();
             } else {
                 return f();
             }
         };
-        case 'time-seconds': {
-            return () => new Date().getSeconds();
+        case 'first': return (x) => {
+            return x[0];
         };
-        case 'time-minutes': {
-            return () => new Date().getMinutes();
+        case 'second': return (y) => {
+            return y[1];
         };
-        case 'time-hours': {
-            return () => new Date().getHours();
+        case 'pair': return (x, y) => {
+            return [x, y];
         };
-        case 'random': return (low, high) => {
-            return Math.floor(Math.random()*(high-low)+low);
-        }
-        case 'str': return (c) => {
-            return String(c);
+        case 'putchar': return (a) => {
+            process.stdout.write(String.fromCharCode(a));
+            return 0;
         };
-        case 'while': return (c, v) => {
-            while (c()) {
-                v();
-            }
-        };
-        case 'cat': return (x, y) => {
-            return `${x}${y}`;
-        }
-        case 'get': return (o, p) => {
-            return o[p];
-        };
-        case 'set': return (o, p, v) => {
-            o[p] = v;
-            return v;
-        };
-        case 'object': return () => {
-            return {};
-        };
-        case 'not': return (x) => {
-            return !x;
-        };
-        case 'print': return (a) => {
+        case 'magic-print': return (a) => {
             console.log(a);
             return 0;
         };
         case 'above': return (x, y) => {
-            return y > x;
+            return x > y ? 1 : 0;
         };
         case 'equal': return (x, y) => {
-            return y === x;
+            return y === x ? 1 : 0;
         };
         case 'add': return (x, y) => {
             return y + x;
@@ -104,7 +52,7 @@ const rt_load = (name) => {
             return y * x;
         };
         case 'div': return (x, y) => {
-            return y / x;
+            return Math.floor(y / x);
         };
         case 'mod': return (x, y) => {
             return y % x;
