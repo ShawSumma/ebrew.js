@@ -108,7 +108,7 @@ do  hour-hand xpos ypos size
 object
 
 (main)
-do  InitWindow 640 640 "Snake"
+do  InitWindow 640 640 "Clock"
 let store init-store
 do  while not WindowShouldClose
     do  BeginDrawing

@@ -119,7 +119,7 @@ if  get store "done"
     game-frame store
 
 (main)
-do  InitWindow 640 480 "Snake"
+do  InitWindow 640 480 "Guess the Number"
 do  let store new-store
 do  while not WindowShouldClose
     do  BeginDrawing
