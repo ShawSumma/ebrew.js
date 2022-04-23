@@ -64,6 +64,11 @@ and list
 pair in first list
      map name second list in name
 
+(contains list entry)
+and list
+    or  equal first list entry
+        contains second list entry
+
 # io #
 
 (put-line)
@@ -201,14 +206,17 @@ parse-and str
 
 # bindings #
 
-(binding-of-value) 0
-(binding-of-lambda) 1
+(binding-of-value)   0
+(binding-of-lambda)  1
+(binding-of-generic) 2
 
-(binding-value value) pair binding-of-value value 
+(binding-value value)       pair binding-of-value  value 
 (binding-lambda value args) pair binding-of-lambda pair value args
+(binding-generic value)     pair binding-of-generic  value 
 
-(binding-is-value binding) equal binding-of-value first binding
-(binding-is-lambda binding) equal binding-of-lambda first binding
+(binding-is-value binding)   equal binding-of-value   first binding
+(binding-is-lambda binding)  equal binding-of-lambda  first binding
+(binding-is-generic binding) equal binding-of-generic first binding
 
 (get-binding-value binding)
 if  binding-is-value binding 
@@ -217,6 +225,9 @@ if  binding-is-value binding
 (get-binding-args binding) second second binding
 
 (put-binding binding)
+if  binding-is-generic binding
+    do  put-str "$"
+        put-str get-binding-value binding
 if  binding-is-lambda binding
     do  put-str "("
     do  put-str get-binding-value binding
@@ -244,24 +255,21 @@ if  str-eq name get-binding-value first table
     first table
     binding-table-lookup second table name
 
-(binding-table-with [name] table binding (in name))
-in binding-table-append table binding
-
 # ast #
 
-(ast-of-name) 0
-(ast-of-call) 1
+(ast-of-name)     0
+(ast-of-call)     1
 (ast-of-function) 2
-(ast-of-number) 3
-(ast-of-extern) 4
-(ast-of-lambda) 5
+(ast-of-number)   3
+(ast-of-extern)   4
+(ast-of-lambda)   5
 
-(ast-name name) pair ast-of-name name
-(ast-call args) pair ast-of-call args
+(ast-name name)          pair ast-of-name     name
+(ast-call args)          pair ast-of-call     args
 (ast-function args then) pair ast-of-function pair args then
-(ast-number num) pair ast-of-number num
-(ast-extern args) pair ast-of-extern args
-(ast-lambda args then) pair ast-of-lambda pair args then
+(ast-number num)         pair ast-of-number   num
+(ast-extern args)        pair ast-of-extern   args
+(ast-lambda args then)   pair ast-of-lambda   pair args then
 
 (ast-is-name tree)     equal ast-of-name     first tree
 (ast-is-call tree)     equal ast-of-call     first tree
@@ -344,26 +352,51 @@ if  or  equal '   chr
     strip second str
     str
 
-(parse-args str (then value str) (error))
-parse-or str
-    parse-and str
-        parse-value strip str '(
+(parse-square str (then value str) (error))
+parse-value strip str '[
+    parse-zero-or-more str
+        parse-word str
             then value str
             error
-        parse-one-or-more str
-            parse-args str
-                then value str
-                error
-            let sstr strip str
-                if  equal ') first sstr
-                    then value second sstr
-                    error
+        let ret value
+        parse-value strip str ']
+            then ret str
             error
-        then ast-call second value str
         error
-    parse-word strip str
-        then ast-name value str
+    then 0 str
+
+(parse-args-from str names (then value str) (error))
+parse-or strip str
+    parse-value str '(
+        parse-word str
+            let func value
+            parse-square str
+                let names 
+                    fold names name
+                        names value
+                        pair name names
+                parse-zero-or-more str
+                    parse-args-from str names
+                        then value str
+                        error
+                    let args value
+                    parse-value strip str ')
+                        then ast-call pair ast-name func args str
+                        error
+                    error
+                error
+            error
         error
+    parse-word str
+        if contains names value
+            error
+            then ast-name value str
+        error
+    then value str
+    error
+
+(parse-args str (then value str) (error))
+parse-args-from str 0
     then value str
     error
 
@@ -438,11 +471,12 @@ if  not strip str
             then pair value values str tab
             error
         error
+
 # main #
 
 (main)
 # let str "(if c (t) (f)) ? (not) if 1 0 1" #
-let str "(let x (in x)) in x (main) let 2 x"
+let str "(let [x] x (in x)) in x (main) let 2 x"
 parse-toplevel str binding-table
     do  for value values
             do  put-ast value
