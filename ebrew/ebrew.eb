@@ -62,7 +62,7 @@ if  list
 (map [name] list (in name))
 and list
 pair in first list
-    for name second list in name
+     map name second list in name
 
 # io #
 
@@ -204,13 +204,16 @@ parse-and str
 (binding-of-value) 0
 (binding-of-lambda) 1
 
-(binding-value value) pair binding-of-value pair value 0 
+(binding-value value) pair binding-of-value value 
 (binding-lambda value args) pair binding-of-lambda pair value args
 
 (binding-is-value binding) equal binding-of-value first binding
 (binding-is-lambda binding) equal binding-of-lambda first binding
 
-(get-binding-value binding) first second binding
+(get-binding-value binding)
+if  binding-is-value binding 
+    second binding
+    get-binding-value first second binding
 (get-binding-args binding) second second binding
 
 (put-binding binding)
@@ -226,6 +229,12 @@ if  binding-is-lambda binding
 if  binding-is-value binding
     put-str get-binding-value binding
     put-str "?"
+
+(put-binding-table tab)
+for binding tab
+    do  put-str "= "
+    do  put-binding binding 
+        put-line
 
 (binding-table) 0
 (binding-table-append table binding) pair binding table
@@ -353,15 +362,40 @@ parse-or str
     then value str
     error
 
+(parse-call str tab bindings (parse-expr str tab (then value str tab) (error)) (then value str tab) (error))
+if  bindings
+    let binding first bindings
+    parse-expr str tab
+        let v1 value
+        parse-call str tab second bindings
+            parse-expr str tab then value str tab error
+            then pair v1 value str tab
+            error
+        error
+    then 0 str tab
+
+(parse-expr-match str tab value (parse-expr str tab (then value str tab) (error)) (then value str tab) (error))
+let binding binding-table-lookup tab value
+if  binding-is-value binding
+    then ast-name value str tab
+    let v1 value
+    parse-call str tab get-binding-args binding
+        parse-expr str tab then value str tab error
+        then ast-call pair ast-name v1 value str tab
+        error
+
 (parse-expr str tab (then value str tab) (error))
-parse-one-or-more strip str
+let str strip str
+parse-one-or-more str
     parse-if str is-digit test
         then value str 
         error
     then ast-number str-to-num value str tab 
     parse-word str
-        let found binding-table-lookup tab value
+        parse-expr-match str tab value
+            parse-expr str tab then value str tab error
             then value str tab
+            error
         error
         
 (parse-toplevel-single str tab (then value str tab) (error))
@@ -372,7 +406,7 @@ parse-args str
         then ast-extern func str tab-with-func
         let tab-with-args
         fold tab-with-arg  func-arg
-            tab-with-func second second func
+             tab-with-func second second func
             binding-table-append tab-with-arg ast-to-binding func-arg
         parse-expr str tab-with-args
             then ast-function func value str tab-with-args
@@ -380,23 +414,21 @@ parse-args str
     error
 
 (parse-toplevel str tab (then values str tab) (error))
-parse-toplevel-single str tab
-    parse-toplevel str tab
-        then pair value values str tab
-        then pair value 0 str tab
-    error
+if  not strip str
+    then 0 str tab
+    parse-toplevel-single str tab
+        parse-toplevel str tab
+            then pair value values str tab
+            error
+        error
 # main #
 
 (main)
-let str "(style x) ? (f) ? (main) 0"
+let str "(add x y)? (f) add 1 2"
 parse-toplevel str binding-table
-    do  magic-print values
     do  for value values
             do  put-ast value
                 put-line
-        for binding tab
-            do  put-str "binding: "
-            do  put-binding binding 
-            do  put-str " ?"
-                put-line
+    do  put-line
+        put-binding-table tab
     put-str-line "error"
