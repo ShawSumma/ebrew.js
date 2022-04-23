@@ -254,18 +254,21 @@ in binding-table-append table binding
 (ast-of-function) 2
 (ast-of-number) 3
 (ast-of-extern) 4
+(ast-of-lambda) 5
 
 (ast-name name) pair ast-of-name name
 (ast-call args) pair ast-of-call args
 (ast-function args then) pair ast-of-function pair args then
 (ast-number num) pair ast-of-number num
 (ast-extern args) pair ast-of-extern args
+(ast-lambda args then) pair ast-of-lambda pair args then
 
-(ast-is-name tree) equal ast-of-name first tree
-(ast-is-call tree) equal ast-of-call first tree
+(ast-is-name tree)     equal ast-of-name     first tree
+(ast-is-call tree)     equal ast-of-call     first tree
 (ast-is-function tree) equal ast-of-function first tree
-(ast-is-number tree) equal ast-of-number first tree
-(ast-is-extern tree) equal ast-of-extern first tree
+(ast-is-number tree)   equal ast-of-number   first tree
+(ast-is-extern tree)   equal ast-of-extern   first tree
+(ast-is-lambda tree)   equal ast-of-lambda   first tree
 
 (put-ast tree)
 if  ast-is-extern tree
@@ -275,6 +278,8 @@ if  ast-is-function tree
     do  put-ast first second tree
     do  put-str " "
         put-ast second second tree
+if  ast-is-lambda tree
+    put-ast second second tree
 if  ast-is-call tree
     do  put-str "("
     do  put-list-sep second tree
@@ -365,13 +370,25 @@ parse-or str
 (parse-call str tab bindings (parse-expr str tab (then value str tab) (error)) (then value str tab) (error))
 if  bindings
     let binding first bindings
-    parse-expr str tab
-        let v1 value
-        parse-call str tab second bindings
-            parse-expr str tab then value str tab error
-            then pair v1 value str tab
+    if  binding-is-value binding
+        parse-expr str tab
+            let v1 value
+            parse-call str tab second bindings
+                parse-expr str tab then value str tab error
+                then pair v1 value str tab
+                error
             error
-        error
+        let tab-with-args
+            fold tab-with-arg lambda-arg
+                 tab          get-binding-args binding
+                binding-table-append tab-with-arg lambda-arg
+            parse-expr str tab-with-args
+                let v1 ast-lambda 0 value
+                parse-call str tab second bindings
+                    parse-expr str tab then value str tab error
+                    then pair v1 value str tab
+                    error
+                error
     then 0 str tab
 
 (parse-expr-match str tab value (parse-expr str tab (then value str tab) (error)) (then value str tab) (error))
@@ -424,7 +441,8 @@ if  not strip str
 # main #
 
 (main)
-let str "(add x y)? (f) add 1 2"
+# let str "(if c (t) (f)) ? (not) if 1 0 1" #
+let str "(let x (in x)) in x (main) let 2 x"
 parse-toplevel str binding-table
     do  for value values
             do  put-ast value
