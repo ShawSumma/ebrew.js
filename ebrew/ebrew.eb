@@ -183,11 +183,24 @@ parse-and str
     then value str
     error
 
+(binding-of-name) 0
+(binding-of-lambda) 1
+
+(parse-args str (then value str) (error))
+0
+
+(parse-toplevel str (then value str) (error))
+parse-value str '(
+    parse-args str
+        then value str
+        error
+    error
+
 # main #
 
 (main)
 let str "hello world"
 put-str-line
 parse-word str
-    "the string does start with a valid word"
-    "the string does not start with a valid word"
+    magic-print value
+    put-str-line "error"

@@ -413,10 +413,25 @@ const Parser = class {
         if (this.state.done()) {
             return this.raise('expected expression at end of file');
         }
-        if (type.func) {
-            return this.readFunc(type);
-        } else {
-            return this.readSingle();
+        let isParen = this.state.first() === '(';
+        if (isParen) {
+            this.state.skip();
+            this.skipSpace();
+        }
+        try {
+            if (type.func) {
+                return this.readFunc(type);
+            } else {
+                return this.readSingle();
+            }
+        } catch {
+            if (isParen) {
+                if (this.state.first() === ')') {
+                    this.state.skip();
+                } else {
+                    return this.raise('expected closing paren');
+                }
+            }
         }
     }
 
