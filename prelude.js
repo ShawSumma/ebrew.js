@@ -20,9 +20,15 @@ const rt_load = (name) => {
             }
         };
         case 'first': return (x) => {
+            if (!Array.isArray(x) || x.length != 2) {
+                throw Error('first on non pair: ' + x);
+            }
             return x[0];
         };
         case 'second': return (y) => {
+            if (!Array.isArray(y) || y.length != 2) {
+                throw Error('second on non pair: ' + y);
+            }
             return y[1];
         };
         case 'pair': return (x, y) => {

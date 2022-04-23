@@ -6,6 +6,7 @@
 (first p) ?
 (second p) ?
 
+(magic-print x) ?
 (putchar c) ?
 
 (equal y x) ?
@@ -52,9 +53,18 @@ and list
 do  in first list
     for name second list in name
 
-# io #
+(fold [last name] start list (in last name))
+if  list
+    in  fold last name start second list in last name
+        first list
+    start
 
-(magic-print x) ?
+(map [name] list (in name))
+and list
+pair in first list
+    for name second list in name
+
+# io #
 
 (put-line)
 putchar '\n
@@ -70,7 +80,7 @@ do  put-str s
 putchar add '0 mod 10 n
 
 (put-num-nonzero n)
-and above 0 n
+and above n 0
 do  put-num-nonzero div 10 n
     put-digit n
 
@@ -95,6 +105,28 @@ do  then first tree
 
 (put-list-sep tree (sep) (then el))
 put-list-sep-from 0 tree sep then el
+
+# strings #
+
+(list-reverse-from list res)
+if  list
+    list-reverse-from second list pair first list res
+    res
+
+(str-eq x y)
+if x
+    and y
+        and equal  first  x first  y
+            str-eq second x second y 
+    equal y 0
+
+(rstr-to-num x)
+and x
+    add mul 10 rstr-to-num second x
+        sub '0 first x
+
+(str-to-num x)
+rstr-to-num list-reverse-from x 0
 
 # parser library #
 
@@ -167,24 +199,81 @@ parse-and str
     then value str
     error
 
+# bindings #
+
+(binding-of-value) 0
+(binding-of-lambda) 1
+
+(binding-value value) pair binding-of-value pair value 0 
+(binding-lambda value args) pair binding-of-lambda pair value args
+
+(binding-is-value binding) equal binding-of-value first binding
+(binding-is-lambda binding) equal binding-of-lambda first binding
+
+(get-binding-value binding) first second binding
+(get-binding-args binding) second second binding
+
+(put-binding binding)
+if  binding-is-lambda binding
+    do  put-str "("
+    do  put-str get-binding-value binding
+    do  and get-binding-args binding
+        do  put-str " "
+            put-list-sep get-binding-args binding
+                put-str " "
+                put-binding el
+        put-str ")"
+if  binding-is-value binding
+    put-str get-binding-value binding
+    put-str "?"
+
+(binding-table) 0
+(binding-table-append table binding) pair binding table
+(binding-table-lookup table name)
+and table
+if  str-eq name get-binding-value first table 
+    first table
+    binding-table-lookup second table name
+
+(binding-table-with [name] table binding (in name))
+in binding-table-append table binding
+
 # ast #
 
 (ast-of-name) 0
 (ast-of-call) 1
+(ast-of-function) 2
+(ast-of-number) 3
+(ast-of-extern) 4
 
 (ast-name name) pair ast-of-name name
 (ast-call args) pair ast-of-call args
+(ast-function args then) pair ast-of-function pair args then
+(ast-number num) pair ast-of-number num
+(ast-extern args) pair ast-of-extern args
 
 (ast-is-name tree) equal ast-of-name first tree
 (ast-is-call tree) equal ast-of-call first tree
+(ast-is-function tree) equal ast-of-function first tree
+(ast-is-number tree) equal ast-of-number first tree
+(ast-is-extern tree) equal ast-of-extern first tree
 
 (put-ast tree)
+if  ast-is-extern tree
+    do  put-ast second tree
+        put-str " ?"
+if  ast-is-function tree
+    do  put-ast first second tree
+    do  put-str " "
+        put-ast second second tree
 if  ast-is-call tree
     do  put-str "("
     do  put-list-sep second tree
             put-str " "
             put-ast el
         put-str ")"
+if  ast-is-number tree
+    put-num second tree
 if  ast-is-name tree
     put-str second tree
     put-str "?"
@@ -193,6 +282,14 @@ if  ast-is-name tree
 do  put-ast tree
     put-line 
 
+(ast-to-binding tree)
+if  ast-is-call tree
+    let args second tree
+    binding-lambda first args map val second args ast-to-binding val
+if  ast-is-name tree
+    binding-value second tree
+    0
+    
 # ebrew parser #
 
 (within-range test low high)
@@ -204,9 +301,12 @@ or  within-range test 'A 'Z
 or  equal test '-
     equal test '_
 
+(is-digit test)
+within-range test '0 '9
+
 (is-word-char test)
 or  is-word-char-init test
-    within-range test '0 '9
+    is-digit test
 
 (parse-word str (then value str) (error))
 parse-and str
@@ -221,8 +321,9 @@ parse-and str
         error
     then value str
     error
-    
+
 (strip str)
+and str
 let chr first str
 if  or  equal '   chr
         equal '\r chr
@@ -252,15 +353,50 @@ parse-or str
     then value str
     error
 
-(parse-toplevel str (then value str) (error))
+(parse-expr str tab (then value str tab) (error))
+parse-one-or-more strip str
+    parse-if str is-digit test
+        then value str 
+        error
+    then ast-number str-to-num value str tab 
+    parse-word str
+        let found binding-table-lookup tab value
+            then value str tab
+        error
+        
+(parse-toplevel-single str tab (then value str tab) (error))
 parse-args str
-    then value str
+    let func value
+    let tab-with-func binding-table-append tab ast-to-binding func
+    parse-value strip str '?
+        then ast-extern func str tab-with-func
+        let tab-with-args
+        fold tab-with-arg  func-arg
+            tab-with-func second second func
+            binding-table-append tab-with-arg ast-to-binding func-arg
+        parse-expr str tab-with-args
+            then ast-function func value str tab-with-args
+            error
     error
 
+(parse-toplevel str tab (then values str tab) (error))
+parse-toplevel-single str tab
+    parse-toplevel str tab
+        then pair value values str tab
+        then pair value 0 str tab
+    error
 # main #
 
 (main)
-let str "(main)"
-parse-toplevel str
-    put-ast-line value
+let str "(style x) ? (f) ? (main) 0"
+parse-toplevel str binding-table
+    do  magic-print values
+    do  for value values
+            do  put-ast value
+                put-line
+        for binding tab
+            do  put-str "binding: "
+            do  put-binding binding 
+            do  put-str " ?"
+                put-line
     put-str-line "error"
