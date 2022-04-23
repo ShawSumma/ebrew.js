@@ -83,6 +83,19 @@ if  n
 do  put-num n
     put-line
 
+(put-list-sep-from n tree (sep) (then el))
+and tree
+do  and n sep
+do  then first tree
+    put-list-sep-from
+        add 1 n
+        second tree
+        sep
+        then el
+
+(put-list-sep tree (sep) (then el))
+put-list-sep-from 0 tree sep then el
+
 # parser library #
 
 (parse-none str (then value str) (error))
@@ -154,7 +167,33 @@ parse-and str
     then value str
     error
 
-# example #
+# ast #
+
+(ast-of-name) 0
+(ast-of-call) 1
+
+(ast-name name) pair ast-of-name name
+(ast-call args) pair ast-of-call args
+
+(ast-is-name tree) equal ast-of-name first tree
+(ast-is-call tree) equal ast-of-call first tree
+
+(put-ast tree)
+if  ast-is-call tree
+    do  put-str "("
+    do  put-list-sep second tree
+            put-str " "
+            put-ast el
+        put-str ")"
+if  ast-is-name tree
+    put-str second tree
+    put-str "?"
+
+(put-ast-line tree)
+do  put-ast tree
+    put-line 
+
+# ebrew parser #
 
 (within-range test low high)
 and not above test high not above low test
@@ -182,25 +221,46 @@ parse-and str
         error
     then value str
     error
-
-(binding-of-name) 0
-(binding-of-lambda) 1
+    
+(strip str)
+let chr first str
+if  or  equal '   chr
+        equal '\r chr
+    strip second str
+    str
 
 (parse-args str (then value str) (error))
-0
+parse-or str
+    parse-and str
+        parse-value strip str '(
+            then value str
+            error
+        parse-one-or-more str
+            parse-args str
+                then value str
+                error
+            let sstr strip str
+                if  equal ') first sstr
+                    then value second sstr
+                    error
+            error
+        then ast-call second value str
+        error
+    parse-word strip str
+        then ast-name value str
+        error
+    then value str
+    error
 
 (parse-toplevel str (then value str) (error))
-parse-value str '(
-    parse-args str
-        then value str
-        error
+parse-args str
+    then value str
     error
 
 # main #
 
 (main)
-let str "hello world"
-put-str-line
-parse-word str
-    magic-print value
+let str "(main)"
+parse-toplevel str
+    put-ast-line value
     put-str-line "error"

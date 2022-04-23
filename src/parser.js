@@ -482,8 +482,13 @@ const Parser = class {
     }
 
     readAll() {
-        const rval = this.readDefs();
-        return rval;
+        try {
+            const rval = this.readDefs();
+            return rval;
+        } catch (e) {
+            console.log(this.state.line, this.state.col);
+            throw e;
+        }
     }
 };
 
