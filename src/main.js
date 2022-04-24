@@ -15,7 +15,8 @@ const compileFile = async (inpath) => {
     const interp = new Compiler();
     const js = interp.compile(ast);
     const prelude = await fs.readFile('prelude.js');
-    return eval(`${prelude}${js}`);
+    // console.log(String(js));
+    return eval(`${String(prelude)}${js}`);
 };
 
 const main = async (inpath) => {

@@ -1,17 +1,11 @@
 
-(print x) ?
-(mul y x) ? 
-(add y x) ? 
-
-(do y x) x
 
 (let [x] x (in x))
 in x
 
 (main)
-print
 let (let2 [x y] x y (in x y)) in x y
-    add 2
+    let q 2
     let2 v k
          1 2
-         add v k
+        k

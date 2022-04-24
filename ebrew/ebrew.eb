@@ -356,7 +356,8 @@ if  binding-is-lambda bind
     ast-call pair
         ast-name get-binding-value bind
         map tree get-binding-args bind
-            binding-to-ast tree
+            # binding-to-ast tree #
+            ast-name get-binding-value tree
 if  binding-is-generic bind
     ast-name get-binding-value bind
     ast-name "???"
@@ -393,9 +394,18 @@ parse-and str
     then value str
     error
 
+(strip-comment str)
+and str
+let chr first str
+if  equal '# chr
+    str
+    strip-comment second str
+
 (strip str)
 and str
 let chr first str
+if  equal '# chr
+    strip strip-comment second str
 if  or  equal '   chr
         equal 10  chr
     strip second str
@@ -404,7 +414,7 @@ if  or  equal '   chr
 (parse-square str (then value str) (error))
 parse-value strip str '[
     parse-zero-or-more str
-        parse-word str
+        parse-word strip str
             then value str
             error
         let ret value
@@ -458,9 +468,10 @@ parse-args-from str 0
 (parse-generic-args str tab generics (then str tab) (error))
 if  generics
     parse-args str
-        then str
-            binding-table-append-generic tab
-                binding-lambda first generics pair value 0 0
+        let tab binding-table-append-generic tab binding-lambda first generics pair value 0 0
+        parse-generic-args str tab second generics
+            then str tab
+            error
         error
     then str tab
 
@@ -510,26 +521,21 @@ if  bindings
                 error
             error
     if  binding-is-lambda binding
-        parse-generic-args str tab get-binding-generics binding
-            let tab-with-args
-                fold tab-with-arg lambda-arg
-                    tab          get-binding-args binding
-                    binding-table-append tab-with-arg lambda-arg
-            parse-expr str tab-with-args
-                let v1
-                    ast-lambda
-                        map arg get-binding-args binding
-                            if binding-is-generic arg
-                                let found binding-table-lookup-generic tab get-binding-value arg
-                                if found
-                                    ast-name get-binding-value first get-binding-args  found
-                                    binding-to-ast arg
-                                binding-to-ast arg
-                        value
-                parse-call str tab second bindings
-                    parse-expr str tab then value str tab error
-                    then pair v1 value str tab
-                    error
+        let tab
+            fold tab-with-arg lambda-arg
+                tab          get-binding-args binding
+                binding-table-append tab-with-arg lambda-arg
+        parse-expr str tab
+            let v1  ast-lambda
+                    map arg get-binding-args binding
+                        let gen binding-table-lookup-generic tab get-binding-value arg
+                        ast-name if gen
+                            get-binding-value first get-binding-args gen
+                            get-binding-value arg
+                    value
+            parse-call str tab second bindings
+                parse-expr str tab then value str tab error
+                then pair v1 value str tab
                 error
             error
         error
@@ -596,10 +602,10 @@ if  not strip str
             error
         error
 
-# main #
+(read-file name) ?
 
 (main)
-let str "(let [x] x (in x)) in x (main) let (y x) x y '2"
+let str read-file "ebrew/test.eb"
 parse-toplevel str binding-table
     for value values
         do  put-ast value

@@ -1,9 +1,20 @@
+const fs = require('fs/promises');
+
 const rt_str = (s) => {
     let ret = 0;
     for (let index = s.length - 1; index >= 0; index--) {
         ret = [s[index], ret];
     }
     return ret;
+};
+
+const str_rt = (p) => {
+    let s = '';
+    while (p !== 0) {
+        s += String.fromCharCode(p[0]);
+        p = p[1];
+    }
+    return s;
 }
 
 const main = async (f) => {
@@ -12,11 +23,11 @@ const main = async (f) => {
 
 const rt_load = (name) => {
     switch (name) {
-        case 'if': return (c, t, f) => {
+        case 'if': return async(c, t, f) => {
             if (c !== 0) {
-                return t();
+                return await t();
             } else {
-                return f();
+                return await f();
             }
         };
         case 'first': return (x) => {
@@ -30,6 +41,10 @@ const rt_load = (name) => {
                 throw Error('second on non pair: ' + y);
             }
             return y[1];
+        };
+        case 'read-file': return async(name) => {
+            const file = await fs.readFile(str_rt(name));
+            return rt_str(Array.from(file));
         };
         case 'pair': return (x, y) => {
             return [x, y];
