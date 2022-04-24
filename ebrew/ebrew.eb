@@ -6,7 +6,7 @@
 (first p) ?
 (second p) ?
 
-(putchar c) ?
+(putchar char) ?
 
 (equal y x) ?
 (above y x) ?
@@ -38,15 +38,6 @@ in val
 
 # looping #
 
-(range [name] start end step (then name))
-if  above 0 step
-    and above start end
-        do  then start
-            range name add step start end step then name
-    and not above start end
-        do then start
-            range name add step start end step then name
-
 (for [name] list (in name))
 and list
 do  in first list
@@ -74,7 +65,7 @@ and list
 putchar 10
 
 (put-str s)
-for c s putchar c
+for k s putchar k
 
 (put-str-line s)
 do  put-str s
@@ -282,9 +273,12 @@ pair first tab
 pair name-table-append first tab binding
      second tab
 
-(binding-table-lookup-generic tab binding) name-table-lookup second tab binding
-(binding-table-lookup         tab binding) name-table-lookup first  tab binding
+(binding-table-lookup-generic tab binding)
+name-table-lookup second tab binding
 
+(binding-table-lookup tab binding)
+or  name-table-lookup first tab binding
+    binding-value binding
 # ast #
 
 (ast-of-name)     0
@@ -398,7 +392,7 @@ parse-and str
 and str
 let chr first str
 if  equal '# chr
-    str
+    second str
     strip-comment second str
 
 (strip str)
@@ -528,9 +522,9 @@ if  bindings
         parse-expr str tab
             let v1  ast-lambda
                     map arg get-binding-args binding
-                        let gen binding-table-lookup-generic tab get-binding-value arg
-                        ast-name if gen
-                            get-binding-value first get-binding-args gen
+                        ast-name if contains get-binding-generics binding str-eq el get-binding-value arg
+                            let gen binding-table-lookup-generic tab get-binding-value arg
+                                get-binding-value first get-binding-args gen
                             get-binding-value arg
                     value
             parse-call str tab second bindings
@@ -558,21 +552,21 @@ parse-value str '"
             error
         error
 
-(parse-expr str tab (then value str tab) (error))
+(parse-expr str tab (then0 value str tab) (error))
 let str strip str
 parse-one-or-more str
     parse-if str is-digit test
         then value str 
         error
-    then ast-number str-to-num value str tab 
+    then0 ast-number str-to-num value str tab 
     parse-word str
         parse-expr-match str tab value
             parse-call str tab bindings parse-expr str tab then value str tab error then value str tab error
             parse-expr str tab then value str tab error
-            then value str tab
+            then0 value str tab
             error
         parse-str-expr str
-            then value str tab
+            then0 value str tab
             error
         
 (parse-toplevel-single str tab (then value str tab) (error))
@@ -605,7 +599,7 @@ if  not strip str
 (read-file name) ?
 
 (main)
-let str read-file "ebrew/test.eb"
+let str read-file "ebrew/ebrew.eb"
 parse-toplevel str binding-table
     for value values
         do  put-ast value
