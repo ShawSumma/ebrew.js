@@ -6,7 +6,6 @@
 (first p) ?
 (second p) ?
 
-(magic-print x) ?
 (putchar c) ?
 
 (equal y x) ?
@@ -72,7 +71,7 @@ and list
 # io #
 
 (put-line)
-putchar '\n
+putchar 10
 
 (put-str s)
 for c s putchar c
@@ -294,6 +293,7 @@ pair name-table-append first tab binding
 (ast-of-number)   3
 (ast-of-extern)   4
 (ast-of-lambda)   5
+(ast-of-str)      6
 
 (ast-name name)          pair ast-of-name     name
 (ast-call args)          pair ast-of-call     args
@@ -301,6 +301,7 @@ pair name-table-append first tab binding
 (ast-number num)         pair ast-of-number   num
 (ast-extern args)        pair ast-of-extern   args
 (ast-lambda args then)   pair ast-of-lambda   pair args then
+(ast-str str)            pair ast-of-str      str
 
 (ast-is-name tree)     equal ast-of-name     first tree
 (ast-is-call tree)     equal ast-of-call     first tree
@@ -308,8 +309,13 @@ pair name-table-append first tab binding
 (ast-is-number tree)   equal ast-of-number   first tree
 (ast-is-extern tree)   equal ast-of-extern   first tree
 (ast-is-lambda tree)   equal ast-of-lambda   first tree
+(ast-is-str tree)      equal ast-of-str      first tree
 
 (put-ast tree)
+if  ast-is-str tree
+    do  putchar '"
+    do  put-str second tree
+        putchar '"
 if  ast-is-extern tree
     do  put-ast second tree
         put-str " ?"
@@ -391,7 +397,7 @@ parse-and str
 and str
 let chr first str
 if  or  equal '   chr
-        equal '\r chr
+        equal 10  chr
     strip second str
     str
 
@@ -469,7 +475,6 @@ if  binding-is-value binding
 if  binding-is-lambda binding
     let v1 value
     parse-generic-args str tab get-binding-generics binding
-        # do put-binding-line binding #
         parse-call str tab get-binding-args binding
             parse-expr str tab then value str tab error
             then ast-call pair ast-name v1 value str tab
@@ -489,13 +494,6 @@ if  bindings
                 parse-expr str tab then value str tab error
                 then value str tab
                 error
-            # parse-expr str tab
-                let v1 value
-                parse-call str tab second bindings
-                    parse-expr str tab then value str tab error
-                    then pair v1 value str tab
-                    error
-                error #
             parse-expr str tab
                 let v1 value
                 parse-call str tab second bindings
@@ -537,6 +535,23 @@ if  bindings
         error
     then 0 str tab
 
+(parse-str-expr str (then value str) (error))
+parse-value str '"
+    parse-zero-or-more str
+        parse-if str not equal '" test
+            then value str
+            error
+        let ret ast-str value
+        parse-value str '"
+            then ret str
+            error
+        error
+    parse-value str ''
+        parse-any str
+            then ast-number value str
+            error
+        error
+
 (parse-expr str tab (then value str tab) (error))
 let str strip str
 parse-one-or-more str
@@ -550,7 +565,9 @@ parse-one-or-more str
             parse-expr str tab then value str tab error
             then value str tab
             error
-        error
+        parse-str-expr str
+            then value str tab
+            error
         
 (parse-toplevel-single str tab (then value str tab) (error))
 parse-args str
@@ -582,7 +599,7 @@ if  not strip str
 # main #
 
 (main)
-let str "(let [x] x (in x)) in x (main) let (y x) x y 1"
+let str "(let [x] x (in x)) in x (main) let (y x) x y '2"
 parse-toplevel str binding-table
     for value values
         do  put-ast value
