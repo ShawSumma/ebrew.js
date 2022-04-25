@@ -67,10 +67,6 @@ putchar 10
 (put-str s)
 for k s putchar k
 
-(put-str-line s)
-do  put-str s
-    put-line
-
 (put-digit n)
 putchar add '0 mod 10 n
 
@@ -83,10 +79,6 @@ do  put-num-nonzero div 10 n
 if  n
     put-num-nonzero n
     put-digit 0
-
-(put-num-line n)
-do  put-num n
-    put-line
 
 (put-list-sep-from n tree (sep) (then el))
 and tree
@@ -125,9 +117,6 @@ rstr-to-num list-reverse-from x 0
 
 # parser library #
 
-(parse-none str (then value str) (error))
-then 0 str
-
 (parse-any str (then value str) (error))
 if  str
     then first str second str
@@ -144,18 +133,6 @@ parse-any str
 parse-if str equal value test
     then value str
     error
-
-(parse-range str low high (then value str) (error))
-parse-if str and not above test high not above low test
-    then value str
-    error
-
-(parse-or str (parse1 str (then value str) (error)) (parse2 str (then value str) (error)) (then value str) (error))
-parse1 str
-    then value str
-    parse2 str
-        then value str
-        error
 
 (parse-and str (parse1 str (then value str) (error)) (parse2 str (then value str) (error)) (then value str) (error))
 parse1 str
@@ -342,29 +319,28 @@ parse-value strip str '[
     then 0 str
 
 (parse-args-from str names (then value str) (error))
-parse-or strip str
-    parse-value str '(
-        parse-word str
-            let func value
-            parse-square str
-                let generics
-                    fold generics arg
-                         0        value
-                        pair binding-generic arg generics
-                let names 
-                    fold names name
-                         names value
-                        pair name names
-                parse-zero-or-more str
-                    parse-args-from str names
-                        then value str
-                        error
-                    let args value
-                    parse-value strip str ')
-                        then
-                            binding-lambda binding-value func args generics
-                            str
-                        error
+let str strip str
+parse-value str '(
+    parse-word str
+        let func value
+        parse-square str
+            let generics
+                fold generics arg
+                        0        value
+                    pair binding-generic arg generics
+            let names 
+                fold names name
+                        names value
+                    pair name names
+            parse-zero-or-more str
+                parse-args-from str names
+                    then value str
+                    error
+                let args value
+                parse-value strip str ')
+                    then
+                        binding-lambda binding-value func args generics
+                        str
                     error
                 error
             error
@@ -374,8 +350,6 @@ parse-or strip str
             then binding-generic value str
             then binding-value value str
         error
-    then value str
-    error
 
 (parse-args str (then value str) (error))
 parse-args-from str 0
@@ -581,4 +555,5 @@ parse-toplevel str binding-table
         do  compile-ast value
             put-line
         put-str "return await main(eb_main);})().catch((e) => {throw e;})"
-    put-str-line "error"
+    do  put-str "error"
+        put-line
