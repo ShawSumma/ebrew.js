@@ -1,11 +1,10 @@
 
+(add y z) ?
 
-(let [x] x (in x))
-in x
+(let [l] l (in l))
+in l
 
 (main)
-let (let2 [x y] x y (in x y)) in x y
-    let q 2
-    let2 v k
-         1 2
-        k
+let x 2 
+let y 3
+    x

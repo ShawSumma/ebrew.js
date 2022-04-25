@@ -36,6 +36,10 @@ const rt_load = (name) => {
             }
             return x[0];
         };
+        case 'print': return (a) => {
+            console.log(a);
+            return 0;
+        }
         case 'second': return (y) => {
             if (!Array.isArray(y) || y.length != 2) {
                 throw Error('second on non pair: ' + y);

@@ -522,7 +522,7 @@ if  bindings
         parse-expr str tab
             let v1  ast-lambda
                     map arg get-binding-args binding
-                        ast-name if contains get-binding-generics binding str-eq el get-binding-value arg
+                        ast-name if binding-is-generic arg
                             let gen binding-table-lookup-generic tab get-binding-value arg
                                 get-binding-value first get-binding-args gen
                             get-binding-value arg
@@ -554,6 +554,7 @@ parse-value str '"
 
 (parse-expr str tab (then0 value str tab) (error))
 let str strip str
+let tab-init tab
 parse-one-or-more str
     parse-if str is-digit test
         then value str 
@@ -563,10 +564,10 @@ parse-one-or-more str
         parse-expr-match str tab value
             parse-call str tab bindings parse-expr str tab then value str tab error then value str tab error
             parse-expr str tab then value str tab error
-            then0 value str tab
+            then0 value str tab-init
             error
         parse-str-expr str
-            then0 value str tab
+            then0 value str tab-init
             error
         
 (parse-toplevel-single str tab (then value str tab) (error))
@@ -598,10 +599,63 @@ if  not strip str
 
 (read-file name) ?
 
+(compile-ast tree)
+if  ast-is-str tree
+    do  put-str "rt_str(["
+    do  put-list-sep second tree
+            put-str ","
+            put-num el
+        put-str "])"
+if  ast-is-extern tree
+    do  put-str "const "
+    do  compile-ast first second second tree
+    do  put-str "=rt_load('"
+    do  put-str second first second second tree
+        put-str "');"
+if  ast-is-function tree
+    do  put-str "const "
+    do  compile-ast first second first second tree
+    do  put-str "=async("
+    do  put-list-sep second second first second tree
+        put-str "," 
+        compile-ast el 
+    do  put-str ")"
+    do  put-str "=>"
+    do  compile-ast second second tree
+        put-str ";"
+if  ast-is-lambda tree
+    do  put-str "(async("
+    do  put-list-sep first second tree
+            put-str ","
+            compile-ast el
+    do  put-str ")=>"
+    do  compile-ast second second tree
+        put-str ")"
+if  ast-is-call tree
+    do  put-str "(await "
+    do  compile-ast first second tree
+    do  put-str "("
+    do  put-list-sep second second tree
+            put-str ","
+            compile-ast el
+        put-str "))"
+if  ast-is-number tree
+    put-num second tree
+if  ast-is-name tree
+    do put-str "eb_"
+        for chr second tree
+            if equal chr '-
+                put-str "_DASH_"
+                putchar chr
+    put-str "?"
+
 (main)
 let str read-file "ebrew/ebrew.eb"
 parse-toplevel str binding-table
-    for value values
-        do  put-ast value
+    do put-str read-file "prelude.js"
+    do  put-str "(async()=>{"
+    do  for value values
+        do  compile-ast value
             put-line
+        put-str "return await main(eb_main);})().catch((e) => {throw e;})"
     put-str-line "error"
