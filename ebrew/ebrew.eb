@@ -218,45 +218,6 @@ if  binding-is-generic binding
 (get-binding-args binding)     first  second second binding
 (get-binding-generics binding) second second second binding
 
-(put-binding binding)
-if  binding-is-generic binding
-    do  put-str "$"
-        put-str get-binding-value binding
-if  binding-is-lambda binding
-    do  put-str "("
-    do  put-str get-binding-value binding
-    do  and get-binding-generics binding
-        do  put-str " ["
-        do  put-list-sep get-binding-generics binding
-                put-str " "
-                put-binding el
-            put-str "]"
-    do  and get-binding-args binding
-        do  put-str " "
-            put-list-sep get-binding-args binding
-                put-str " "
-                put-binding el
-        put-str ")"
-if  binding-is-value binding
-    put-str get-binding-value binding
-    put-str "?"
-
-(put-binding-line binding)
-do  put-binding binding
-    put-line
-
-(put-name-table tab)
-for binding tab
-    do  put-str "= "
-    do  put-binding binding 
-        put-line
-
-(put-binding-table tab)
-do  put-str-line "--- bindings ---"
-do  put-name-table first tab
-do  put-str-line "--- generics ---"
-    put-name-table second tab
-
 (name-table-append table binding) pair binding table
 (name-table-lookup table name)
 and table
@@ -304,44 +265,6 @@ or  name-table-lookup first tab binding
 (ast-is-extern tree)   equal ast-of-extern   first tree
 (ast-is-lambda tree)   equal ast-of-lambda   first tree
 (ast-is-str tree)      equal ast-of-str      first tree
-
-(put-ast tree)
-if  ast-is-str tree
-    do  putchar '"
-    do  put-str second tree
-        putchar '"
-if  ast-is-extern tree
-    do  put-ast second tree
-        put-str " ?"
-if  ast-is-function tree
-    do  put-str "(define "
-    do  put-ast first second tree
-    do  put-str " "
-    do  put-ast second second tree
-        put-str ")"
-if  ast-is-lambda tree
-    do  put-str "(lambda ("
-    do  put-list-sep first second tree
-            put-str " "
-            put-ast el
-    do  put-str ") "
-    do  put-ast second second tree
-        put-str ")"
-if  ast-is-call tree
-    do  put-str "("
-    do  put-list-sep second tree
-            put-str " "
-            put-ast el
-        put-str ")"
-if  ast-is-number tree
-    put-num second tree
-if  ast-is-name tree
-    put-str second tree
-    put-str "?"
-
-(put-ast-line tree)
-do  put-ast tree
-    put-line 
 
 (binding-to-ast bind)
 if  binding-is-value bind
