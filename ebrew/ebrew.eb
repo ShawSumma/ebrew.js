@@ -496,7 +496,7 @@ if  not strip str
 
 (read-file name) ?
 
-(compile-ast tree)
+(compile-js tree)
 if  ast-is-str tree
     do  put-str "rt_str(["
     do  put-list-sep second tree
@@ -505,36 +505,36 @@ if  ast-is-str tree
         put-str "])"
 if  ast-is-extern tree
     do  put-str "const "
-    do  compile-ast first second second tree
+    do  compile-js first second second tree
     do  put-str "=rt_load('"
     do  put-str second first second second tree
         put-str "');"
 if  ast-is-function tree
     do  put-str "const "
-    do  compile-ast first second first second tree
+    do  compile-js first second first second tree
     do  put-str "=async("
     do  put-list-sep second second first second tree
         put-str "," 
-        compile-ast el 
+        compile-js el 
     do  put-str ")"
     do  put-str "=>"
-    do  compile-ast second second tree
+    do  compile-js second second tree
         put-str ";"
 if  ast-is-lambda tree
     do  put-str "(async("
     do  put-list-sep first second tree
             put-str ","
-            compile-ast el
+            compile-js el
     do  put-str ")=>"
-    do  compile-ast second second tree
+    do  compile-js second second tree
         put-str ")"
 if  ast-is-call tree
     do  put-str "(await "
-    do  compile-ast first second tree
+    do  compile-js first second tree
     do  put-str "("
     do  put-list-sep second second tree
             put-str ","
-            compile-ast el
+            compile-js el
         put-str "))"
 if  ast-is-number tree
     put-num second tree
@@ -546,14 +546,111 @@ if  ast-is-name tree
                 putchar chr
     put-str "?"
 
-(main)
-let str read-file "ebrew/ebrew.eb"
+(compile-lua tree)
+if  ast-is-str tree
+    do  for chr second tree
+        do  putchar '{
+        do  put-num chr
+            putchar ',
+    do  putchar '0
+        for chr second tree
+            putchar '}
+if  ast-is-extern tree
+    do  put-str "local "
+    do  compile-lua first second second tree
+    do  put-str "="
+    let str second first second second tree
+    if  str-eq str "putchar"     put-str "function(c)io.write(string.char(c))return 0 end"
+    if  str-eq str "if"          put-str "function(c,t,f)if c~=0 then return t() else return f()end end"
+    if  str-eq str "first"       put-str "function(p)return p[1]end"
+    if  str-eq str "second"      put-str "function(p)return p[2]end"
+    if  str-eq str "pair"        put-str "function(a,b)return{a,b}end"
+    if  str-eq str "equal"       put-str "function(a,b)if a==b then return 1 else return 0 end end"
+    if  str-eq str "above"       put-str "function(a,b)if a>b then return 1 else return 0 end end"
+    if  str-eq str "add"         put-str "function(a,b)return b + a end"
+    if  str-eq str "sub"         put-str "function(a,b)return b - a end"
+    if  str-eq str "mul"         put-str "function(a,b)return b * a end"
+    if  str-eq str "div"         put-str "function(a,b)return math.floor(b / a) end"
+    if  str-eq str "mod"         put-str "function(a,b)return b % a end"
+    if  str-eq str "read-file"  
+        do  put-str "function(f)local s=''while f~=0 do s=s..string.char(f[1])f=f[2]end "
+        do  put-str "local f=assert(io.open(s, 'rb'))s=f:read('*all')f:close()f=0 "
+            put-str "for c=#s,1,-1 do f={s:byte(c),f}end return f end"
+        put-str "print('unknown extern')"
+if  ast-is-function tree
+    do  put-str "local function "
+    do  compile-lua first second first second tree
+    do  put-str "("
+    do  put-list-sep second second first second tree
+        put-str "," 
+        compile-lua el 
+    do  put-str ")return "
+    do  compile-lua second second tree
+        put-str " end"
+if  ast-is-lambda tree
+    do  put-str "function("
+    do  put-list-sep first second tree
+            put-str ","
+            compile-lua el
+    do  put-str ")return "
+    do  compile-lua second second tree
+        put-str " end"
+if  ast-is-call tree
+    do  put-str ""
+    do  compile-lua first second tree
+    do  put-str "("
+    do  put-list-sep second second tree
+            put-str ","
+            compile-lua el
+        put-str ")"
+if  ast-is-number tree
+    put-num second tree
+if  ast-is-name tree
+    do put-str "eb_"
+        for chr second tree
+            if equal chr '-
+                put-str "_DASH_"
+                putchar chr
+    put-str "?"
+
+(main-js str)
 parse-toplevel str binding-table
     do put-str read-file "prelude.js"
     do  put-str "(async()=>{"
     do  for value values
-        do  compile-ast value
+        do  compile-js value
             put-line
-        put-str "return await main(eb_main);})().catch((e) => {throw e;})"
+        put-str "return await main(2,eb_main);})().catch((e) => {throw e;})"
     do  put-str "error"
         put-line
+        
+(main-lua str)
+parse-toplevel str binding-table
+    do  put-str "(function(v)"
+    do  put-line
+    do  for value values
+        do  compile-lua value
+            put-line
+    do  put-str "local m=0 for a=#v,1,-1 do local c=0 for i=#v[a],1,-1 "
+    do  put-str "do c={v[a]:byte(i),c}end m={c,m}end "
+        put-str "eb_main(m)end)(arg)"
+    do  put-str "error"
+        put-line
+
+(comp-final file lang)
+if  str-eq lang "js"
+    main-js read-file file
+if  str-eq lang "lua"
+    main-lua read-file file
+do  put-str "unknown target: "
+do  put-str lang
+    put-line
+
+(comp args file lang)
+if  and args str-eq "--target" first args  
+    comp second second args file first second args
+    comp-final first args lang
+
+(main args)
+do  comp args 0 "js"
+    0

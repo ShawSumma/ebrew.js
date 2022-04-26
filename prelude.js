@@ -17,8 +17,16 @@ const str_rt = (p) => {
     return s;
 }
 
-const main = async (f) => {
-    return await f();
+const main = async (n,f) => {
+    let args = 0;
+    for (const ent of [...process.argv.slice(n)].reverse()) {
+        let arg = 0;
+        for (const chr of [...ent].reverse()) {
+            arg = [chr.charCodeAt(0), arg];
+        }
+        args = [arg, args];
+    }
+    return await f(args);
 };
 
 const rt_load = (name) => {
