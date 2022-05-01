@@ -1,0 +1,24 @@
+(if c (t) (f)) ?
+
+(putchar c) ?
+
+(first p) ?
+(second p) ?
+(pair a b) ?
+
+(let [x] x (in x))
+in x
+
+(do x y) y
+
+(and x (y)) if x y 0
+
+(puts s)
+and s
+do  putchar first  s
+    puts    second s
+
+(main)
+and 1
+do  puts "100"
+    putchar 10

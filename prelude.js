@@ -61,6 +61,10 @@ const rt_load = (name) => {
             process.stdout.write(String.fromCharCode(a));
             return 0;
         };
+        case 'print': return (a) => {
+            console.log(a);
+            return 0;
+        };
         case 'above': return (x, y) => {
             return x > y ? 1 : 0;
         };

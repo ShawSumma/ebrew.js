@@ -1,3 +1,5 @@
+(print x) ?
+
 # builtin #
 
 (if c (t) (f)) ?
@@ -42,6 +44,7 @@ in val
 and list
 do  in first list
     for name second list in name
+
 
 (fold [last name] start list (in last name))
 if  list
@@ -100,12 +103,18 @@ if  list
     list-reverse-from second list pair first list res
     res
 
+(list-reverse list)
+list-reverse-from list 0
+
 (str-eq x y)
-if x
-    and y
+if  x
+    if  y
         and equal  first  x first  y
             str-eq second x second y 
-    equal y 0
+        0
+    if  y
+        0
+        1
 
 (rstr-to-num x)
 and x
@@ -113,7 +122,7 @@ and x
         sub '0 first x
 
 (str-to-num x)
-rstr-to-num list-reverse-from x 0
+rstr-to-num list-reverse x
 
 # parser library #
 
@@ -254,7 +263,7 @@ if  binding-is-lambda bind
             ast-name get-binding-value tree
 if  binding-is-generic bind
     ast-name get-binding-value bind
-    ast-name "???"
+    ast-str "???"
     
 # ebrew parser #
 
@@ -326,11 +335,11 @@ parse-value str '(
         parse-square str
             let generics
                 fold generics arg
-                        0        value
+                     0        value
                     pair binding-generic arg generics
             let names 
                 fold names name
-                        names value
+                     names value
                     pair name names
             parse-zero-or-more str
                 parse-args-from str names
@@ -414,7 +423,7 @@ if  bindings
     if  binding-is-lambda binding
         let tab
             fold tab-with-arg lambda-arg
-                tab          get-binding-args binding
+                 tab          get-binding-args binding
                 binding-table-append tab-with-arg lambda-arg
         parse-expr str tab
             let v1  ast-lambda
@@ -477,7 +486,7 @@ parse-args str
             then ast-extern func-ast str tab-with-func
             let tab-with-args
                 fold tab-with-arg  func-arg
-                    tab-with-func get-binding-args func-bind
+                     tab-with-func get-binding-args func-bind
                     binding-table-append tab-with-arg func-arg
             parse-expr str tab-with-args
                 then ast-function func-ast value str tab-with-func
@@ -496,152 +505,232 @@ if  not strip str
 
 (read-file name) ?
 
-(compile-js tree)
+(put-ast tree)
 if  ast-is-str tree
-    do  put-str "rt_str(["
+    do  putchar '"
+    do  put-str second tree
+        putchar '"
+if  ast-is-extern tree
+    do  put-ast second tree
+        put-str " ?"
+if  ast-is-function tree
+    do  put-str "(define "
+    do  put-ast first second tree
+    do  put-str " "
+    do  put-ast second second tree
+        put-str ")"
+if  ast-is-lambda tree
+    do  put-str "(lambda ("
+    do  put-list-sep first second tree
+            put-str " "
+            put-ast el
+    do  put-str ") "
+    do  put-ast second second tree
+        put-str ")"
+if  ast-is-call tree
+    do  put-str "("
     do  put-list-sep second tree
-            put-str ","
-            put-num el
-        put-str "])"
-if  ast-is-extern tree
-    do  put-str "const "
-    do  compile-js first second second tree
-    do  put-str "=rt_load('"
-    do  put-str second first second second tree
-        put-str "');"
-if  ast-is-function tree
-    do  put-str "const "
-    do  compile-js first second first second tree
-    do  put-str "=async("
-    do  put-list-sep second second first second tree
-        put-str "," 
-        compile-js el 
-    do  put-str ")"
-    do  put-str "=>"
-    do  compile-js second second tree
-        put-str ";"
-if  ast-is-lambda tree
-    do  put-str "(async("
-    do  put-list-sep first second tree
-            put-str ","
-            compile-js el
-    do  put-str ")=>"
-    do  compile-js second second tree
+            put-str " "
+            put-ast el
         put-str ")"
-if  ast-is-call tree
-    do  put-str "(await "
-    do  compile-js first second tree
-    do  put-str "("
-    do  put-list-sep second second tree
-            put-str ","
-            compile-js el
-        put-str "))"
 if  ast-is-number tree
     put-num second tree
 if  ast-is-name tree
-    do put-str "eb_"
-        for chr second tree
-            if equal chr '-
-                put-str "_DASH_"
-                putchar chr
+    put-str second tree
     put-str "?"
 
-(compile-lua tree)
+(defs-append defs name value)
+pair pair name value defs
+
+
+(defs-lookup defs name)
+and defs
+if  str-eq name first first defs
+    second first defs
+    defs-lookup second defs name
+
+(compile-ast-str str)
+if  str
+    do  put-str "ebz_pair("
+    do  put-num first str    
+    do  put-str ","
+    do  compile-ast-str second str
+        put-str ")"
+    put-num 0
+
+(compile-ast-extern name)
+0
+
+(compile-str str)
+do  put-str "eb_"
+for c str
+    if  equal c '-
+        put-str "_DASH_"
+        putchar c 
+
+(compile-found found)
+if  equal 1 first found
+    do  put-str "ebz_nth(c,"
+    do  put-num second found
+        put-str ")"
+if  equal 0 first found
+    compile-str second found
+    put-str "?"
+
+(compile-ast tree defs)
 if  ast-is-str tree
-    do  for chr second tree
-        do  putchar '{
-        do  put-num chr
-            putchar ',
-    do  putchar '0
-        for chr second tree
-            putchar '}
+    compile-ast-str second tree
 if  ast-is-extern tree
-    do  put-str "local "
-    do  compile-lua first second second tree
-    do  put-str "="
-    let str second first second second tree
-    if  str-eq str "putchar"     put-str "function(c)io.write(string.char(c))return 0 end"
-    if  str-eq str "if"          put-str "function(c,t,f)if c~=0 then return t() else return f()end end"
-    if  str-eq str "first"       put-str "function(p)return p[1]end"
-    if  str-eq str "second"      put-str "function(p)return p[2]end"
-    if  str-eq str "pair"        put-str "function(a,b)return{a,b}end"
-    if  str-eq str "equal"       put-str "function(a,b)if a==b then return 1 else return 0 end end"
-    if  str-eq str "above"       put-str "function(a,b)if a>b then return 1 else return 0 end end"
-    if  str-eq str "add"         put-str "function(a,b)return b + a end"
-    if  str-eq str "sub"         put-str "function(a,b)return b - a end"
-    if  str-eq str "mul"         put-str "function(a,b)return b * a end"
-    if  str-eq str "div"         put-str "function(a,b)return math.floor(b / a) end"
-    if  str-eq str "mod"         put-str "function(a,b)return b % a end"
-    if  str-eq str "read-file"  
-        do  put-str "function(f)local s=''while f~=0 do s=s..string.char(f[1])f=f[2]end "
-        do  put-str "local f=assert(io.open(s, 'rb'))s=f:read('*all')f:close()f=0 "
-            put-str "for c=#s,1,-1 do f={s:byte(c),f}end return f end"
-        put-str "print('unknown extern')"
+    compile-ast-extern second tree
 if  ast-is-function tree
-    do  put-str "local function "
-    do  compile-lua first second first second tree
-    do  put-str "("
-    do  put-list-sep second second first second tree
-        put-str "," 
-        compile-lua el 
-    do  put-str ")return "
-    do  compile-lua second second tree
-        put-str " end"
+    let defs 
+        fold xdefs arg
+             0    second second first second tree
+            defs-append xdefs second arg pair 0 second arg
+    do  put-str "size_t "
+    do  compile-str second first second first second tree
+    do  put-str "(size_t c"
+    do  for arg second second first second tree
+        do  put-str ","
+        do  put-str "size_t "
+            compile-str second arg
+    do  put-str "){"
+    # do  put-str "printf("
+    do  putchar '"
+    do  put-str second first second first second tree 
+    do  putchar 92
+    do  putchar 'n
+    do  putchar '"
+    do  put-str ");" #
+    do  put-str "return "
+    do  compile-ast second second tree defs
+    do  put-str ";}"
+        put-line
 if  ast-is-lambda tree
-    do  put-str "function("
-    do  put-list-sep first second tree
+    let d0 defs
+    let defs second
+        fold duo      def
+            pair 0 0  defs
+            pair add 1 first duo 
+                 defs-append second duo first def pair 1 first duo
+    let defs second 
+        fold duo         arg
+             pair 0 defs first second tree
+            pair add 1 first duo
+                 defs-append second duo second arg pair 0 second arg
+    do  put-str "ebz_pair("
+    do  put-str "({size_t f(size_t c"
+    do  for arg first second tree
+        do  put-str ","
+        do  put-str "size_t "
+            compile-str second arg
+    do  put-str "){return "
+    do  compile-ast second second tree defs
+    do  put-str ";}(size_t)f;}),"
+    do  for def list-reverse d0
+        do  put-str "ebz_pair("
+        do  compile-found second def
             put-str ","
-            compile-lua el
-    do  put-str ")return "
-    do  compile-lua second second tree
-        put-str " end"
-if  ast-is-call tree
-    do  put-str ""
-    do  compile-lua first second tree
-    do  put-str "("
-    do  put-list-sep second second tree
-            put-str ","
-            compile-lua el
+    do  put-str "0"
+    do  for def d0
+            put-str ")"
         put-str ")"
+if  ast-is-call tree
+do  put-str "({size_t f="
+do  compile-ast first second tree defs
+do  put-str ";"
+do  fold n el
+         0 list-reverse second second tree
+        do  put-str "size_t v"
+        do  put-num n
+        do  put-str "="
+        do  compile-ast el defs
+        do  put-str ";"
+            add 1 n
+do  put-str "((size_t(*)())ebz_first(f))(ebz_second(f)"
+do  fold n el
+         0 second second tree
+        do  put-str ",v"
+        do  put-num n
+        add 1 n
+    put-str ");})"
 if  ast-is-number tree
     put-num second tree
 if  ast-is-name tree
-    do put-str "eb_"
-        for chr second tree
-            if equal chr '-
-                put-str "_DASH_"
-                putchar chr
+    let found defs-lookup defs second tree
+        if found
+            compile-found found
+            do  put-str "ebz_pair((size_t)"
+            do  compile-str second tree
+                put-str ",0)"
     put-str "?"
 
-(main-js str)
+(main-low str)
 parse-toplevel str binding-table
-    do put-str read-file "prelude.js"
-    do  put-str "(async()=>{"
-    do  for value values
-        do  compile-js value
-            put-line
-        put-str "return await main(2,eb_main);})().catch((e) => {throw e;})"
-    do  put-str "error"
-        put-line
-        
-(main-lua str)
-parse-toplevel str binding-table
-    do  put-str "(function(v)"
+    do  put-str "#include <stddef.h>"
     do  put-line
-    do  for value values
-        do  compile-lua value
-            put-line
-    do  put-str "local m=0 for a=#v,1,-1 do local c=0 for i=#v[a],1,-1 "
-    do  put-str "do c={v[a]:byte(i),c}end m={c,m}end "
-        put-str "eb_main(m)end)(arg)"
+    do  put-str "#include <stdlib.h>"
+    do  put-line
+    do  put-str "#include <stdio.h>"
+    do  put-line 
+    do  put-str "#include <ctype.h>"
+    do  put-line 
+    do  put-str "#include <string.h>"
+    do  put-line 
+    do  put-str "size_t ebz_putchar(size_t c){putchar((int)c);return 0;}"
+    do  put-line
+    do  put-str "size_t ebz_pair(size_t a, size_t b){size_t *r=malloc(sizeof(size_t)*2);r[0]=a;r[1]=b;return(size_t)r;}"
+    do  put-line
+    do  put-str "size_t ebz_first(size_t p){return((size_t*)p)[0];}"
+    do  put-line
+    do  put-str "size_t ebz_second(size_t p){return((size_t*)p)[1];}"
+    do  put-line
+    do  put-str "size_t ebz_if(size_t c, size_t t, size_t e){size_t f=c?t:e;return ((size_t(*)(size_t))ebz_first(f))(ebz_second(f));}"
+    do  put-line
+    do  put-str "size_t ebz_nth(size_t p, size_t n){for(size_t i=0;i<n;i++){p=ebz_second(p);}return ebz_first(p);}"
+    do  put-line
+    do  put-str "size_t eb_putchar(size_t a1, size_t a2) {return ebz_putchar(a2);}"
+    do  put-line
+    do  put-str "size_t eb_pair(size_t a1, size_t a2, size_t a3) {return ebz_pair(a2,a3);}"
+    do  put-line
+    do  put-str "size_t eb_first(size_t a1, size_t a2) {return ebz_first(a2);}"
+    do  put-line
+    do  put-str "size_t eb_second(size_t a1, size_t a2) {return ebz_second(a2);}"
+    do  put-line
+    do  put-str "size_t eb_if(size_t a1, size_t a2, size_t a3, size_t a4) {return ebz_if(a2,a3,a4);}"
+    do  put-line
+    do  put-str "size_t eb_add(size_t a1, size_t r, size_t l) {return l+r;}"
+    do  put-line
+    do  put-str "size_t eb_sub(size_t a1, size_t r, size_t l) {return l-r;}"
+    do  put-line
+    do  put-str "size_t eb_mul(size_t a1, size_t r, size_t l) {return l*r;}"
+    do  put-line
+    do  put-str "size_t eb_div(size_t a1, size_t r, size_t l) {return l/r;}"
+    do  put-line
+    do  put-str "size_t eb_mod(size_t a1, size_t r, size_t l) {return l%r;}"
+    do  put-line
+    do  put-str "size_t eb_equal(size_t a1, size_t r, size_t l) {return l==r?1:0;}"
+    do  put-line
+    do  put-str "size_t eb_above(size_t a1, size_t r, size_t l) {return r>l?1:0;}"
+    do  put-line
+    do  put-str "size_t ebz_stol(char *p) {size_t r=0;for(size_t i=strlen(p);i>0;i--){r=ebz_pair(p[i-1],r);};return r;}"
+    do  put-line
+    do  put-str "size_t eb_read_DASH_file(size_t a1, size_t f) {char n[1024];char*s=n;while(f){*s++=ebz_first(f);f=ebz_second(f);}*s++=0;FILE*k=fopen(n,"
+        do  putchar '"
+        do  put-str "r"
+        do  putchar '"
+        do  put-str");if(!k)__builtin_trap();char *i=calloc(1,1<<20);char*m=i;while(!feof(k)){char c=fgetc(k);if(c<=0){break;}*m++=c;}*m++=0;fclose(k);return ebz_stol(i);}"
+    do  put-line
+    do  for node values
+            compile-ast node 0
+    do  put-str "int main(int argc, char **argv){size_t a=0;while(argc>1){char*c=argv[--argc];a=ebz_pair(ebz_stol(c),a);};return eb_main(0,a);}"
+        put-line
     do  put-str "error"
         put-line
 
 (comp-final file lang)
-if  str-eq lang "js"
-    main-js read-file file
-if  str-eq lang "lua"
-    main-lua read-file file
+if  str-eq lang "vm"
+    main-low read-file file
 do  put-str "unknown target: "
 do  put-str lang
     put-line
@@ -652,5 +741,5 @@ if  and args str-eq "--target" first args
     comp-final first args lang
 
 (main args)
-do  comp args 0 "js"
+do  comp args 0 "vm"
     0

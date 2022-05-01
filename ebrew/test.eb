@@ -1,10 +1,11 @@
 
-(add y z) ?
+(putchar x) ?
 
-(let [l] l (in l))
-in l
+(do x y) y
 
 (main)
-let x 2 
-let y 3
-    x
+do  putchar '4
+do  putchar '9
+do  putchar '8
+do  putchar '4
+    0

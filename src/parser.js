@@ -12,13 +12,13 @@ const Form = class {
         }
         if (this.args.length !== 0) {
             for (let i = 0; i < this.args.length; i++) {
-                if (this.args[i].start != null) {
+                if (this.args[i] != null && this.args[i].start != null) {
                     this.start = this.args[i].start;
                     break;
                 }
             }
             for (let i = this.args.length - 1; i >= 0; i--) {
-                if (this.args[i].end != null) {
+                if (this.args[i] != null && this.args[i].end != null) {
                     this.end = this.args[i].end;
                     break;
                 }
