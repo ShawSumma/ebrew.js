@@ -577,7 +577,51 @@ if  equal 0 first found
     compile-str second found
     put-str "?"
 
-(compile-ast tree defs)
+(pre-compile-ast tree (compile tree (path) defs) (path) defs)
+if  ast-is-call tree
+    do  pre-compile-ast
+        first second tree
+        compile tree path defs
+        do  path
+            put-str "_f"
+        defs
+    fold n el
+         0 list-reverse second second tree
+        do  pre-compile-ast
+                el
+                compile tree path defs
+                do  path
+                do  put-str "_c"
+                    put-num n
+                defs
+            add 1 n
+if  ast-is-lambda tree
+    let d0 defs
+    let defs second
+        fold duo      def
+            pair 0 0  defs
+            pair add 1 first duo 
+                 defs-append second duo first def pair 1 first duo
+    let defs second 
+        fold duo         arg
+             pair 0 defs first second tree
+            pair add 1 first duo
+                 defs-append second duo second arg pair 0 second arg
+    do  pre-compile-ast second second tree compile tree path defs path defs
+    do  put-str "size_t "
+    do  path
+    do  put-str "(size_t c"
+    do  for arg first second tree
+        do  put-str ","
+        do  put-str "size_t "
+            compile-str second arg
+    do  put-str "){return "
+    do  compile second second tree path defs
+    do  put-str ";}"
+        put-line
+    0
+
+(compile-ast-path tree (path) defs)
 if  ast-is-str tree
     compile-ast-str second tree
 if  ast-is-extern tree
@@ -587,23 +631,27 @@ if  ast-is-function tree
         fold xdefs arg
              0    second second first second tree
             defs-append xdefs second arg pair 0 second arg
+    let (path) compile-str second first second first second tree
     do  put-str "size_t "
-    do  compile-str second first second first second tree
+    do  path
+    do  put-str "(size_t c"
+    do  for arg second second first second tree
+        do  put-str ","
+        do  put-str "size_t "
+            compile-str second arg
+    do  put-str ");"
+    do  put-line
+    do  pre-compile-ast second second tree compile-ast-path tree path defs path defs
+    do  put-str "size_t "
+    do  path
     do  put-str "(size_t c"
     do  for arg second second first second tree
         do  put-str ","
         do  put-str "size_t "
             compile-str second arg
     do  put-str "){"
-    # do  put-str "printf("
-    do  putchar '"
-    do  put-str second first second first second tree 
-    do  putchar 92
-    do  putchar 'n
-    do  putchar '"
-    do  put-str ");" #
     do  put-str "return "
-    do  compile-ast second second tree defs
+    do  compile-ast-path second second tree path defs
     do  put-str ";}"
         put-line
 if  ast-is-lambda tree
@@ -618,15 +666,9 @@ if  ast-is-lambda tree
              pair 0 defs first second tree
             pair add 1 first duo
                  defs-append second duo second arg pair 0 second arg
-    do  put-str "ebz_pair("
-    do  put-str "({size_t f(size_t c"
-    do  for arg first second tree
-        do  put-str ","
-        do  put-str "size_t "
-            compile-str second arg
-    do  put-str "){return "
-    do  compile-ast second second tree defs
-    do  put-str ";}(size_t)f;}),"
+    do  put-str "ebz_pair((size_t)"
+    do  path
+    do  put-str ","
     do  for def list-reverse d0
         do  put-str "ebz_pair("
         do  compile-found second def
@@ -637,14 +679,16 @@ if  ast-is-lambda tree
         put-str ")"
 if  ast-is-call tree
 do  put-str "({size_t f="
-do  compile-ast first second tree defs
+do  compile-ast-path first second tree path defs
 do  put-str ";"
 do  fold n el
          0 list-reverse second second tree
         do  put-str "size_t v"
         do  put-num n
         do  put-str "="
-        do  compile-ast el defs
+        do  compile-ast-path el do path
+                do  put-str "_c"
+                    put-num n defs
         do  put-str ";"
             add 1 n
 do  put-str "((size_t(*)())ebz_first(f))(ebz_second(f)"
@@ -722,7 +766,7 @@ parse-toplevel str binding-table
         do  put-str");if(!k)__builtin_trap();char *i=calloc(1,1<<20);char*m=i;while(!feof(k)){char c=fgetc(k);if(c<=0){break;}*m++=c;}*m++=0;fclose(k);return ebz_stol(i);}"
     do  put-line
     do  for node values
-            compile-ast node 0
+            compile-ast-path node 0 0
     do  put-str "int main(int argc, char **argv){size_t a=0;while(argc>1){char*c=argv[--argc];a=ebz_pair(ebz_stol(c),a);};return eb_main(0,a);}"
         put-line
     do  put-str "error"

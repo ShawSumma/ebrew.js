@@ -18,7 +18,7 @@ and s
 do  putchar first  s
     puts    second s
 
-(main)
+(main a)
 and 1
 do  puts "100"
     putchar 10

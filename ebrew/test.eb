@@ -3,7 +3,7 @@
 
 (do x y) y
 
-(main)
+(main a)
 do  putchar '4
 do  putchar '9
 do  putchar '8
