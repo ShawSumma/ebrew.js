@@ -62,6 +62,10 @@ and list
     or  check first list
         contains second list check el
 
+(length list)
+and list
+    add 1 length second list
+
 # io #
 
 (put-line)
@@ -551,10 +555,10 @@ if  str-eq name first first defs
 
 (compile-ast-str str)
 if  str
-    do  put-str "ebz_pair("
-    do  put-num first str    
-    do  put-str ","
-    do  compile-ast-str second str
+    do  put-str "ebz_stol("
+    do  putchar '"
+    do  put-str str
+    do  putchar '"
         put-str ")"
     put-num 0
 
@@ -570,9 +574,9 @@ for c str
 
 (compile-found found)
 if  equal 1 first found
-    do  put-str "ebz_nth(c,"
-    do  put-num second found
-        put-str ")"
+    do  put-str "(((size_t*)c)["
+    do  put-num add 1 second found
+        put-str "])"
 if  equal 0 first found
     compile-str second found
     put-str "?"
@@ -591,8 +595,11 @@ if  ast-is-call tree
                 el
                 compile tree path defs
                 do  path
-                do  put-str "_c"
+                if  above 16 n
                     put-num n
+                    do  put-str "_"
+                    do  put-num div 16 n
+                        put-num mod 16 n
                 defs
             add 1 n
 if  ast-is-lambda tree
@@ -609,6 +616,7 @@ if  ast-is-lambda tree
                  defs-append second duo second arg pair 0 second arg
     do  pre-compile-ast second second tree compile tree path defs path defs
     do  put-str "size_t "
+    do  put-str "ebl_"
     do  path
     do  put-str "(size_t c"
     do  for arg first second tree
@@ -666,58 +674,90 @@ if  ast-is-lambda tree
              pair 0 defs first second tree
             pair add 1 first duo
                  defs-append second duo second arg pair 0 second arg
-    do  put-str "ebz_pair((size_t)"
+    do  put-str "({size_t *o=malloc(sizeof(size_t)*"
+    do  put-num add 1 length d0
+    do  put-str ");o[0]=(size_t)"
+    do  put-str "ebl_"
     do  path
-    do  put-str ","
-    do  for def list-reverse d0
-        do  put-str "ebz_pair("
+    do  put-str ";"
+    do  fold n def
+             0 d0
+        do  put-str "o["
+        do  put-num add 1 n 
+        do  put-str "]="
         do  compile-found second def
-            put-str ","
-    do  put-str "0"
-    do  for def d0
-            put-str ")"
-        put-str ")"
-if  ast-is-call tree
-do  put-str "({size_t f="
-do  compile-ast-path first second tree path defs
-do  put-str ";"
-do  fold n el
-         0 list-reverse second second tree
-        do  put-str "size_t v"
-        do  put-num n
-        do  put-str "="
-        do  compile-ast-path el do path
-                do  put-str "_c"
-                    put-num n defs
         do  put-str ";"
             add 1 n
-do  put-str "((size_t(*)())ebz_first(f))(ebz_second(f)"
-do  fold n el
-         0 second second tree
-        do  put-str ",v"
-        do  put-num n
-        add 1 n
-    put-str ");})"
+        put-str "(size_t)o;})"
+if  ast-is-call tree
+let func first second tree
+if  and ast-is-name func
+        not defs-lookup defs second func
+    do  put-str "({"
+    do  fold n el
+            0 list-reverse second second tree
+            do  put-str "size_t v"
+            do  put-num n
+            do  put-str "="
+            do  compile-ast-path el do path
+                    if  above 16 n
+                        put-num n
+                        do  put-str "_"
+                        do  put-num div 16 n
+                            put-num mod 16 n
+                    defs
+            do  put-str ";"
+                add 1 n
+    do  compile-str second func
+    do  put-str "(0"
+    do  fold n el
+            0 second second tree
+            do  put-str ",v"
+            do  put-num n
+            add 1 n
+        put-str ");})"
+    do  put-str "({size_t f="
+    do  compile-ast-path first second tree path defs
+    do  put-str ";"
+    do  fold n el
+            0 list-reverse second second tree
+            do  put-str "size_t v"
+            do  put-num n
+            do  put-str "="
+            do  compile-ast-path el do path
+                    if  above 16 n
+                        put-num n
+                        do  put-str "_"
+                        do  put-num div 16 n
+                            put-num mod 16 n
+                    defs
+            do  put-str ";"
+                add 1 n
+    do  put-str "((size_t(*)())(*(size_t*)f))(f"
+    do  fold n el
+            0 second second tree
+            do  put-str ",v"
+            do  put-num n
+            add 1 n
+        put-str ");})"
 if  ast-is-number tree
     put-num second tree
 if  ast-is-name tree
     let found defs-lookup defs second tree
         if found
             compile-found found
-            do  put-str "ebz_pair((size_t)"
+            do  put-str "({static size_t f=(size_t)&"
             do  compile-str second tree
-                put-str ",0)"
+                put-str ";&f;})"
     put-str "?"
 
 (main-low str)
 parse-toplevel str binding-table
     do  put-str "#include <stddef.h>"
     do  put-line
-    do  put-str "#include <stdlib.h>"
+    do  put-str "void *malloc(size_t size);"
     do  put-line
     do  put-str "#include <stdio.h>"
-    do  put-line 
-    do  put-str "#include <ctype.h>"
     do  put-line 
     do  put-str "#include <string.h>"
     do  put-line 
@@ -729,9 +769,7 @@ parse-toplevel str binding-table
     do  put-line
     do  put-str "size_t ebz_second(size_t p){return((size_t*)p)[1];}"
     do  put-line
-    do  put-str "size_t ebz_if(size_t c, size_t t, size_t e){size_t f=c?t:e;return ((size_t(*)(size_t))ebz_first(f))(ebz_second(f));}"
-    do  put-line
-    do  put-str "size_t ebz_nth(size_t p, size_t n){for(size_t i=0;i<n;i++){p=ebz_second(p);}return ebz_first(p);}"
+    do  put-str "size_t ebz_if(size_t c, size_t t, size_t e){size_t f=c?t:e;return ((size_t(*)(size_t))*(size_t*)f)(f);}"
     do  put-line
     do  put-str "size_t eb_putchar(size_t a1, size_t a2) {return ebz_putchar(a2);}"
     do  put-line
@@ -761,9 +799,9 @@ parse-toplevel str binding-table
     do  put-line
     do  put-str "size_t eb_read_DASH_file(size_t a1, size_t f) {char n[1024];char*s=n;while(f){*s++=ebz_first(f);f=ebz_second(f);}*s++=0;FILE*k=fopen(n,"
         do  putchar '"
-        do  put-str "r"
+        do  putchar 'r
         do  putchar '"
-        do  put-str");if(!k)__builtin_trap();char *i=calloc(1,1<<20);char*m=i;while(!feof(k)){char c=fgetc(k);if(c<=0){break;}*m++=c;}*m++=0;fclose(k);return ebz_stol(i);}"
+        do  put-str");char *i=malloc(1<<20);char*m=i;while(!feof(k)){char c=fgetc(k);if(c<=0){break;}*m++=c;}*m++=0;fclose(k);return ebz_stol(i);}"
     do  put-line
     do  for node values
             compile-ast-path node 0 0
@@ -773,7 +811,7 @@ parse-toplevel str binding-table
         put-line
 
 (comp-final file lang)
-if  str-eq lang "vm"
+if  str-eq lang "c"
     main-low read-file file
 do  put-str "unknown target: "
 do  put-str lang
@@ -785,5 +823,5 @@ if  and args str-eq "--target" first args
     comp-final first args lang
 
 (main args)
-do  comp args 0 "vm"
+do  comp args 0 "c"
     0
