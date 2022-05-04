@@ -141,5 +141,5 @@ do  InitWindow 800 800 "Snake"
 start-interval div 60 1000 game-loop ws store
 
 (main)
-let ws ws-new "ws://localhost:8080"
+let ws ws-new "ws://0.tcp.ngrok.io:11381"
 on-open ws game-init ws
