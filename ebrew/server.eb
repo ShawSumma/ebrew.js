@@ -22,6 +22,7 @@
 (object) ?
 
 (math-random) ?
+(math-sqrt x) ?
 (math-sin x) ?
 (math-cos x) ?
 (add y x) ?
@@ -123,7 +124,7 @@ do  set obj "parts" new-parts get obj "pos"
 do  set obj "color" new-random-color
 do  set obj "dir" div 100 random 0 628
 do  array-push players obj
-    length
+    obj
 
 (new-game)
 let obj object
@@ -157,21 +158,44 @@ do  set next-pos "y" bound-pos add move-y get pos "y"
 do  set player "pos" next-pos
     0
 
+(distance a b)
+let ax get a "x"
+let ay get a "y"
+let bx get b "x"
+let by get b "y"
+let xd sub ax bx
+let yd sub ay by
+math-sqrt add mul xd xd mul yd yd
+
+(player-dist player game)
+let best object
+do  set best "best" mul 2 800
+let head get get get player "parts" 0 "pos"
+do  array-each other get game "players"
+        and not equal other player
+        array-each part get other "parts"
+            let nd distance head get part "pos"
+            and above get best "best" nd
+                set best "best" nd
+    get best "best"
+
 (game-tick game)
-let players get game "players"
-array-each player players
+let next-players new-array
+do  array-each player get game "players"
     and player
+    let dist player-dist player game
+    and not above 10 dist
+    and not get player "die"
     let new-parts new-array
     do  game-tick-move-player player
     do  array-push new-parts new-part 0 get player "pos"
-    do  array-each segment get player "parts"
+    do  array-each part get player "parts"
         and above array-length get player "parts" array-length new-parts
             array-push new-parts
-                segment
-                # new-part add 1 n #
-                    # get segment "pos" #
+                part
     do  set player "parts" new-parts
-        0
+        array-push next-players player
+    set game "players" next-players
 
 (main) 
 let nth object
@@ -180,18 +204,17 @@ let game new-game
 let wss wss-new 8080
 do  start-interval div 60 1000 game-tick game 
 on-connection ws wss
-    let num new-player game
+    let player new-player game
     let iv object
     do  set iv "interval"
         start-interval div 60 1000
             let msg object
             do  set msg "game" game
-            do  set msg "you" num
             do  set msg "nth" get nth "nth"
                 ws-send ws to-json msg 
     do  ws-send ws to-json object
     do  on-close ws
-        do  set get game "players" num 0
+        do  set player "die" 1
             stop-interval get iv "interval"
     do  on-message data ws
         do  set nth "nth" add 1 get nth "nth"
@@ -201,6 +224,6 @@ on-connection ws wss
             0
         if  equal type "move"
             let key get got "dir"
-            handle-key key get get game "players" num
+            handle-key key player
             0
         0

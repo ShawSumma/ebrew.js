@@ -96,7 +96,7 @@ array-each part parts
 array-each player get game "players"
     draw-player player
 
-(send-ctrl ws dir player)
+(send-ctrl ws dir)
 let obj object
 do  set obj "type" "move"
 do  set obj "dir" dir
@@ -110,15 +110,15 @@ ws-send ws to-json obj
 (game-loop ws store)
 let game get store "game"
 and game
-let num get store "you"
 let players get game "players"
-let me get players num
 do  BeginDrawing
 do  ClearBackground BLACK
-do  if  IsKeyDown 'A
-        send-ctrl ws "left" me
-    if  IsKeyDown 'D
-        send-ctrl ws "right" me
+do  if  or  IsKeyDown 'A
+            IsKeyDown KEY_LEFT
+        send-ctrl ws "left"
+    if  or  IsKeyDown 'D
+            IsKeyDown KEY_RIGHT
+        send-ctrl ws "right"
         send-none ws 
 do  and game
     draw-players game
@@ -133,10 +133,8 @@ do  on-message data ws
     let data from-json data
     let data-nth get data "nth"
     or  not above data-nth get nth "nth"
-    let you get data "you"
     let game get data "game"
     do  set nth "nth" data-nth
-    do  set store "you" you
     do  set store "game" game
         0
 do  InitWindow 800 800 "Snake"
