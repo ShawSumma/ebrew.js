@@ -1,0 +1,206 @@
+
+(let [x] x (in x)) in x
+
+(ws-new port) ?
+(wss-new port) ?
+(on-open ws (cb)) ?
+(on-close ws (cb)) ?
+(on-message [data] ws (cb data)) ?
+(on-connection [data] wss (cb data)) ?
+(ws-send ws data) ? 
+
+(start-interval ms (f)) ?
+(stop-interval iv) ?
+
+(str obj) ?
+(print x) ?
+(get obj ent) ?
+(set obj ent val) ?
+
+(to-json o) ?
+(from-json s) ?
+(object) ?
+
+(math-random) ?
+(math-sin x) ?
+(math-cos x) ?
+(add y x) ?
+(sub y x) ?
+(mul y x) ?
+(div y x) ?
+(mod y x) ?
+
+(if c (t) (f)) ?
+(while (c) (t)) ?
+
+(above x y) ?
+(equal x y) ?
+
+(do x y) y
+
+(not x) if x 0 1
+
+(and x (y)) if x y 0
+(or x (y)) if x x y
+
+(move-speed) 5
+(turn-speed) div 10 1
+
+(random low high)
+add low mul sub low high math-random
+
+(range-upto-from [n] low high (in n))
+and above high low
+do  in low
+    range-upto-from n add 1 low high 
+        in n
+        
+(range-upto [n] high (in n))
+range-upto-from n 0 high in n
+
+(new-pos game)
+let pos object
+do  set pos "x" random 0 800 
+do  set pos "y" random 0 800 
+    pos
+
+(new-array)
+let obj object
+do  set obj "length" 0
+    obj
+
+(array-each-in-range [name] obj low high (in n name))
+and above high low
+do  in low get obj low
+    array-each-in-range name obj add 1 low high in n name
+
+(array-each [name] obj (in n name))
+array-each-in-range name obj 0 get obj "length"
+    in n name
+
+(array-length arr)
+get arr "length"
+
+(array-push arr ent)
+let len array-length arr
+do  set arr "length" add 1 len
+    set arr len ent
+
+(array-pop arr ent)
+let len array-length arr
+do  set arr "length" sub 1 len
+    get arr len
+
+(new-part n pos)
+let xpos object
+do  set xpos "x" get pos "x"
+do  set xpos "y" sub mul move-speed n get pos "y"
+let ret object
+do  set ret "pos" xpos
+do  set ret "size" 25
+    ret
+
+(new-parts pos)
+let parts new-array
+do  range-upto n 100
+        array-push parts new-part n pos
+    parts
+
+(new-random-color)
+let obj object
+do  set obj "r" div 1 random 0 256
+do  set obj "g" div 1 random 0 256
+do  set obj "b" div 1 random 0 256
+do  set obj "a" 64
+    obj
+    
+(new-player game)
+let players get game "players"
+let length array-length players
+let obj object
+do  set obj "pos" new-pos game
+do  set obj "parts" new-parts get obj "pos"
+do  set obj "color" new-random-color
+do  set obj "dir" div 100 random 0 628
+do  array-push players obj
+    length
+
+(new-game)
+let obj object
+let players new-array
+do  set obj "players" players
+    obj
+
+(handle-key key player)
+let pos get player "parts"
+if  equal key "left"
+    set player "dir" add turn-speed get player "dir"
+if  equal key "right"
+    set player "dir" sub turn-speed get player "dir"
+    0
+    
+(bound-pos n)
+if  above 0 n
+    bound-pos add 800 n
+if  above n 800
+    bound-pos sub 800 n
+    n
+
+(game-tick-move-player player)
+let dir get player "dir"
+let pos get player "pos"
+let next-pos object
+let move-x mul move-speed math-sin dir
+let move-y mul move-speed math-cos dir
+do  set next-pos "x" bound-pos add move-x get pos "x"
+do  set next-pos "y" bound-pos add move-y get pos "y"
+do  set player "pos" next-pos
+    0
+
+(game-tick game)
+let players get game "players"
+array-each player players
+    and player
+    let new-parts new-array
+    do  game-tick-move-player player
+    do  array-push new-parts new-part 0 get player "pos"
+    do  array-each segment get player "parts"
+        and above array-length get player "parts" array-length new-parts
+            array-push new-parts
+                segment
+                # new-part add 1 n #
+                    # get segment "pos" #
+    do  set player "parts" new-parts
+        0
+
+(main) 
+let nth object
+do  set nth "nth" 1
+let game new-game
+let wss wss-new 8080
+do  start-interval div 60 1000 game-tick game 
+on-connection ws wss
+    let num new-player game
+    let iv object
+    do  set iv "interval"
+        start-interval div 60 1000
+            let msg object
+            do  set msg "game" game
+            do  set msg "you" num
+            do  set msg "nth" get nth "nth"
+                ws-send ws to-json msg 
+    do  ws-send ws to-json object
+    do  on-close ws
+        do  set get game "players" num 0
+            stop-interval get iv "interval"
+    do  on-message data ws
+        do  set nth "nth" add 1 get nth "nth"
+        let got from-json data 
+        let type get got "type"
+        if  equal type "ping"
+            0
+        if  equal type "move"
+            let key get got "dir"
+            handle-key key get get game "players" num
+            0
+        0

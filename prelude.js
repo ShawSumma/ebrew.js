@@ -1,4 +1,7 @@
 const raylib = require('raylib');
+const ws = require('ws');
+
+const fakeDelay = 0;
 
 const rt_str = (s) => {
     return String.fromCharCode(...s);
@@ -24,6 +27,8 @@ const main = async (f) => {
     return 0;
 };
 
+raylib.SetTraceLogLevel(raylib.LOG_WARNING);
+
 const rt_load = (name) => {
     if (raylib[name] != null) {
         if (raylib[name] instanceof Function) {
@@ -40,14 +45,52 @@ const rt_load = (name) => {
             return () => Math[name];
         }
     }
+    if (/^on-/.test(name)) {
+        return (ws, f) => {
+            ws.on(name.slice(3), (...args) => {
+                return f(...args);
+            });  
+        };
+    }
     switch (name) {
-        case 'if': return (c, t, f) => {
+        case 'if': return async(c, t, f) => {
             if (c) {
-                return t();
+                return await t();
             } else {
-                return f();
+                return await f();
             }
         };
+        case 'wss-new': return (port) => {
+            return new ws.WebSocketServer({
+                port
+            });
+        };
+        case 'stop-interval': return (n) => {
+            clearInterval(n);
+            return 0;
+        };
+        case 'start-interval': return (ms, f) => {
+            return setInterval(f, ms);
+        };
+        case 'ws-send': return (ws, obj) => {
+            if (fakeDelay === 0) {
+                ws.send(obj);
+            } else {
+                setTimeout(() => ws.send(obj), fakeDelay);
+            }
+        };
+        case 'ws-new': return (ip) => {
+            return new ws.WebSocket(ip, {});
+        };
+        case 'from-json': return (s) => {
+            return JSON.parse(String(s));
+        }
+        case 'to-json': return (o) => {
+            return JSON.stringify(o);
+        }
+        case 'get-time': {
+            return new Date().getTime();
+        }
         case 'time-seconds': {
             return () => new Date().getSeconds();
         };
@@ -63,9 +106,9 @@ const rt_load = (name) => {
         case 'str': return (c) => {
             return String(c);
         };
-        case 'while': return (c, v) => {
-            while (c()) {
-                v();
+        case 'while': return async(c, v) => {
+            while (await c()) {
+                await v();
             }
         };
         case 'cat': return (x, y) => {
@@ -89,7 +132,7 @@ const rt_load = (name) => {
             return 0;
         };
         case 'above': return (x, y) => {
-            return y > x;
+            return x > y;
         };
         case 'equal': return (x, y) => {
             return y === x;

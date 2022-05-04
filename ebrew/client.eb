@@ -1,0 +1,147 @@
+
+(let [x] x (in x)) in x
+
+(ws-new port) ?
+(wss-new port) ?
+(on-open ws (cb)) ?
+(on-message [data] ws (cb data)) ?
+(on-connection [data] wss (cb data)) ?
+(ws-send ws data) ? 
+
+(str obj) ?
+(print x) ?
+(get obj ent) ?
+(set obj ent val) ?
+
+(to-json o) ?
+(from-json s) ?
+(object) ?
+
+(math-random) ?
+(add y x) ?
+(sub y x) ?
+(mul y x) ?
+(div y x) ?
+(mod y x) ?
+
+(if c (t) (f)) ?
+(while (c) (t)) ?
+
+(InitWindow x y name) ?
+(CloseWindow) ?
+(WindowShouldClose) ?
+(GetFrameTime) ?
+(SetTargetFPS fps) ?
+
+(KEY_UP) ?
+(KEY_DOWN) ?
+(KEY_RIGHT) ?
+(KEY_LEFT) ?
+(IsKeyDown key) ?
+
+(BeginDrawing) ?
+(EndDrawing) ?
+
+(DrawCircle x y size color) ?
+(DrawRectangle x y sizex sizey color) ?
+(DrawText text x y size color) ?
+(ClearBackground color) ?
+
+(RAYWHITE) ?
+(RED) ?
+(ORANGE) ?
+(YELLOW) ?
+(GREEN) ?
+(BLUE) ?
+(PURPLE) ?
+(WHITE) ?
+(BLACK) ?
+
+(above x y) ?
+(equal x y) ?
+
+(start-interval ms (f)) ?
+
+(do x y) y
+
+(not x) if x 0 1
+
+(and x (y)) if x y 0
+(or x (y)) if x x y
+
+(array-each-in-range [name] obj low high (in name))
+and above high low
+do  in get obj low
+    array-each-in-range name obj add 1 low high in name
+
+(array-each [name] obj (in name))
+array-each-in-range name obj 0 get obj "length"
+    in name
+
+(draw-player-part color data)
+and data
+let pos get data "pos"
+let size get data "size"
+DrawCircle get pos "x" get pos "y" div 2 size color
+
+(draw-player player)
+and player
+do  print player
+let parts get player "parts"
+let color get player "color"
+array-each part parts
+    draw-player-part color part
+
+(draw-players game)
+array-each player get game "players"
+    draw-player player
+
+(send-ctrl ws dir player)
+let obj object
+do  set obj "type" "move"
+do  set obj "dir" dir
+    ws-send ws to-json obj
+
+(send-none ws)
+let obj object
+do  set obj "type" "ping"
+ws-send ws to-json obj
+
+(game-loop ws store)
+let game get store "game"
+and game
+let num get store "you"
+let players get game "players"
+let me get players num
+do  BeginDrawing
+do  ClearBackground BLACK
+do  if  IsKeyDown 'A
+        send-ctrl ws "left" me
+    if  IsKeyDown 'D
+        send-ctrl ws "right" me
+        send-none ws 
+do  and game
+    draw-players game
+    EndDrawing
+
+(game-init ws)
+let store object
+let nth object
+do  set nth "nth" 0
+do  set store "game" 0
+do  on-message data ws
+    let data from-json data
+    let data-nth get data "nth"
+    or  not above data-nth get nth "nth"
+    let you get data "you"
+    let game get data "game"
+    do  set nth "nth" data-nth
+    do  set store "you" you
+    do  set store "game" game
+        0
+do  InitWindow 800 800 "Snake"
+start-interval div 60 1000 game-loop ws store
+
+(main)
+let ws ws-new "ws://localhost:8080"
+on-open ws game-init ws

@@ -26,7 +26,7 @@ const Compiler = class {
                         .filter(arg => arg.args[0].repr[0] !== '$')
                         .map(arg => mangle(arg.args[0].repr));
                     const then = this.compile(node.args[node.args.length - 1]);
-                    return `const ${mangle(name)}=(${args.join(',')})=>${then};`;
+                    return `const ${mangle(name)}=async(${args.join(',')})=>${then};`;
                 }
                 case 'extern': {
                     const name = node.args[0].repr;
@@ -34,11 +34,11 @@ const Compiler = class {
                 }
                 case 'call': {
                     const args = node.args.map(arg => this.compile(arg));
-                    return `(${args[0]}(${args.slice(1).join(',')}))`;
+                    return `(await ${args[0]}(${args.slice(1).join(',')}))`;
                 }
                 case 'lambda': {
                     const args = node.args[0].args.map(arg => mangle(arg.repr));
-                    return `((${args.join(',')})=>${this.compile(node.args[1])})`
+                    return `(async(${args.join(',')})=>${this.compile(node.args[1])})`
                 }
                 default:
                     console.log(node.form);
