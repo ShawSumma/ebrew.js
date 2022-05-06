@@ -509,40 +509,6 @@ if  not strip str
 
 (read-file name) ?
 
-(put-ast tree)
-if  ast-is-str tree
-    do  putchar '"
-    do  put-str second tree
-        putchar '"
-if  ast-is-extern tree
-    do  put-ast second tree
-        put-str " ?"
-if  ast-is-function tree
-    do  put-str "(define "
-    do  put-ast first second tree
-    do  put-str " "
-    do  put-ast second second tree
-        put-str ")"
-if  ast-is-lambda tree
-    do  put-str "(lambda ("
-    do  put-list-sep first second tree
-            put-str " "
-            put-ast el
-    do  put-str ") "
-    do  put-ast second second tree
-        put-str ")"
-if  ast-is-call tree
-    do  put-str "("
-    do  put-list-sep second tree
-            put-str " "
-            put-ast el
-        put-str ")"
-if  ast-is-number tree
-    put-num second tree
-if  ast-is-name tree
-    put-str second tree
-    put-str "?"
-
 (defs-append defs name value)
 pair pair name value defs
 
@@ -561,9 +527,6 @@ if  str
     do  putchar '"
         put-str ")"
     put-num 0
-
-(compile-ast-extern name)
-0
 
 (compile-str str)
 do  put-str "eb_"
@@ -632,8 +595,6 @@ if  ast-is-lambda tree
 (compile-ast-path tree (path) defs)
 if  ast-is-str tree
     compile-ast-str second tree
-if  ast-is-extern tree
-    compile-ast-extern second tree
 if  ast-is-function tree
     let defs 
         fold xdefs arg
@@ -657,10 +618,10 @@ if  ast-is-function tree
         do  put-str ","
         do  put-str "size_t "
             compile-str second arg
-    do  put-str "){"
-    do  put-str "return "
+    do  put-str "){size_t n=ebz_alloc_get_size();"
+    do  put-str "size_t r="
     do  compile-ast-path second second tree path defs
-    do  put-str ";}"
+    do  put-str ";ebz_alloc_set_size(n);return r;}"
         put-line
 if  ast-is-lambda tree
     let d0 defs
@@ -674,7 +635,7 @@ if  ast-is-lambda tree
              pair 0 defs first second tree
             pair add 1 first duo
                  defs-append second duo second arg pair 0 second arg
-    do  put-str "({size_t *o=malloc(sizeof(size_t)*"
+    do  put-str "({size_t *o=ebz_alloc("
     do  put-num add 1 length d0
     do  put-str ");o[0]=(size_t)"
     do  put-str "ebl_"
@@ -749,64 +710,14 @@ if  ast-is-name tree
             do  put-str "({static size_t f=(size_t)&"
             do  compile-str second tree
                 put-str ";&f;})"
-    put-str "?"
+    0
 
 (main-low str)
 parse-toplevel str binding-table
-    do  put-str "#include <stddef.h>"
+    do  put-str "#include <ebrew.h>"
     do  put-line
-    do  put-str "void *malloc(size_t size);"
-    do  put-line
-    do  put-str "#include <stdio.h>"
-    do  put-line 
-    do  put-str "#include <string.h>"
-    do  put-line 
-    do  put-str "size_t ebz_putchar(size_t c){putchar((int)c);return 0;}"
-    do  put-line
-    do  put-str "size_t ebz_pair(size_t a, size_t b){size_t *r=malloc(sizeof(size_t)*2);r[0]=a;r[1]=b;return(size_t)r;}"
-    do  put-line
-    do  put-str "size_t ebz_first(size_t p){return((size_t*)p)[0];}"
-    do  put-line
-    do  put-str "size_t ebz_second(size_t p){return((size_t*)p)[1];}"
-    do  put-line
-    do  put-str "size_t ebz_if(size_t c, size_t t, size_t e){size_t f=c?t:e;return ((size_t(*)(size_t))*(size_t*)f)(f);}"
-    do  put-line
-    do  put-str "size_t eb_putchar(size_t a1, size_t a2) {return ebz_putchar(a2);}"
-    do  put-line
-    do  put-str "size_t eb_pair(size_t a1, size_t a2, size_t a3) {return ebz_pair(a2,a3);}"
-    do  put-line
-    do  put-str "size_t eb_first(size_t a1, size_t a2) {return ebz_first(a2);}"
-    do  put-line
-    do  put-str "size_t eb_second(size_t a1, size_t a2) {return ebz_second(a2);}"
-    do  put-line
-    do  put-str "size_t eb_if(size_t a1, size_t a2, size_t a3, size_t a4) {return ebz_if(a2,a3,a4);}"
-    do  put-line
-    do  put-str "size_t eb_add(size_t a1, size_t r, size_t l) {return l+r;}"
-    do  put-line
-    do  put-str "size_t eb_sub(size_t a1, size_t r, size_t l) {return l-r;}"
-    do  put-line
-    do  put-str "size_t eb_mul(size_t a1, size_t r, size_t l) {return l*r;}"
-    do  put-line
-    do  put-str "size_t eb_div(size_t a1, size_t r, size_t l) {return l/r;}"
-    do  put-line
-    do  put-str "size_t eb_mod(size_t a1, size_t r, size_t l) {return l%r;}"
-    do  put-line
-    do  put-str "size_t eb_equal(size_t a1, size_t r, size_t l) {return l==r?1:0;}"
-    do  put-line
-    do  put-str "size_t eb_above(size_t a1, size_t r, size_t l) {return r>l?1:0;}"
-    do  put-line
-    do  put-str "size_t ebz_stol(char *p) {size_t r=0;for(size_t i=strlen(p);i>0;i--){r=ebz_pair(p[i-1],r);};return r;}"
-    do  put-line
-    do  put-str "size_t eb_read_DASH_file(size_t a1, size_t f) {char n[1024];char*s=n;while(f){*s++=ebz_first(f);f=ebz_second(f);}*s++=0;FILE*k=fopen(n,"
-        do  putchar '"
-        do  putchar 'r
-        do  putchar '"
-        do  put-str");char *i=malloc(1<<20);char*m=i;while(!feof(k)){char c=fgetc(k);if(c<=0){break;}*m++=c;}*m++=0;fclose(k);return ebz_stol(i);}"
-    do  put-line
-    do  for node values
+        for node values
             compile-ast-path node 0 0
-    do  put-str "int main(int argc, char **argv){size_t a=0;while(argc>1){char*c=argv[--argc];a=ebz_pair(ebz_stol(c),a);};return eb_main(0,a);}"
-        put-line
     do  put-str "error"
         put-line
 
