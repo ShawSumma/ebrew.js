@@ -180,5 +180,5 @@ do  InitWindow world-size world-size "Snake Battle Royale"
 
 (main)
 # let ws ws-new "ws://2.tcp.ngrok.io:14597" #
-let ws ws-new "ws://localhost:8080"
+let ws ws-new "ws://6.tcp.ngrok.io:17273"
 on-open ws game-init ws

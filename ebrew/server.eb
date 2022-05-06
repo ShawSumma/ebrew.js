@@ -177,7 +177,8 @@ do  set apple "pos" random-pos
 
 (new-apples-for game)
 let apples new-array
-do  array-push apples new-apple 
+do  range-upto n 1
+    array-push apples new-apple 
 do  set game "apples" apples
     0
 
@@ -257,7 +258,7 @@ do  array-each player get game "players"
     let parts-len get parts "length" 
     let moved-parts new-array
     do  array-push moved-parts new-part 0 get player "pos"
-    let has-apple above player-size apple-dist player game
+    let has-apple above div 2 player-size apple-dist player game
     do  and has-apple set new-apple "hit" 1
     do  array-each-in-range part parts 0 sub not has-apple parts-len
         array-push moved-parts part
