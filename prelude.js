@@ -62,7 +62,7 @@ const rt_load = (name) => {
         };
         case 'wss-new': return (port) => {
             return new ws.WebSocketServer({
-                port
+                port,
             });
         };
         case 'stop-interval': return (n) => {
@@ -87,17 +87,17 @@ const rt_load = (name) => {
         }
         case 'to-json': return (o) => {
             return JSON.stringify(o);
-        }
-        case 'get-time': {
-            return new Date().getTime();
-        }
-        case 'time-seconds': {
+        };
+        case 'get-time': return () => {
+            return (new Date()).getTime();
+        };
+        case 'time-seconds': return () => {
             return () => new Date().getSeconds();
         };
-        case 'time-minutes': {
+        case 'time-minutes': return () => {
             return () => new Date().getMinutes();
         };
-        case 'time-hours': {
+        case 'time-hours': return () => {
             return () => new Date().getHours();
         };
         case 'random': return (low, high) => {

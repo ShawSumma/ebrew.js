@@ -1,16 +1,11 @@
 
-(let [x] x (in x)) in x
-
 (ws-new port) ?
 (wss-new port) ?
-(on-open ws (cb)) ?
 (on-close ws (cb)) ?
+(on-open ws (cb)) ?
 (on-message [data] ws (cb data)) ?
 (on-connection [data] wss (cb data)) ?
 (ws-send ws data) ? 
-
-(start-interval ms (f)) ?
-(stop-interval iv) ?
 
 (str obj) ?
 (print x) ?
@@ -21,10 +16,12 @@
 (from-json s) ?
 (object) ?
 
-(math-random) ?
-(math-sqrt x) ?
 (math-sin x) ?
 (math-cos x) ?
+(math-floor x) ?
+(math-sqrt x) ?
+(math-PI) ?
+(math-random) ?
 (add y x) ?
 (sub y x) ?
 (mul y x) ?
@@ -37,6 +34,15 @@
 (above x y) ?
 (equal x y) ?
 
+(stop-interval iv) ?
+(start-interval ms (f)) ?
+
+(get-time) ?
+
+# basics #
+
+(let [x] x (in x)) in x
+
 (do x y) y
 
 (not x) if x 0 1
@@ -44,11 +50,28 @@
 (and x (y)) if x y 0
 (or x (y)) if x x y
 
-(move-speed) 5
-(turn-speed) div 10 1
+(rem y x) mod y add y mod y x
+
+# movement and location #
+
+(player-size) 40
+(world-size) 800
+
+(deg-to-rad n) mul math-PI div 180 n
 
 (random low high)
 add low mul sub low high math-random
+
+(distance a b)
+let ax get a "x"
+let ay get a "y"
+let bx get b "x"
+let by get b "y"
+let xd sub ax bx
+let yd sub ay by
+math-sqrt add mul xd xd mul yd yd
+
+# arrays #
 
 (range-upto-from [n] low high (in n))
 and above high low
@@ -59,10 +82,10 @@ do  in low
 (range-upto [n] high (in n))
 range-upto-from n 0 high in n
 
-(new-pos game)
+(random-pos)
 let pos object
-do  set pos "x" random 0 800 
-do  set pos "y" random 0 800 
+do  set pos "x" add div 2 player-size mul player-size math-floor div player-size random 0 world-size 
+do  set pos "y" add div 2 player-size mul player-size math-floor div player-size random 0 world-size 
     pos
 
 (new-array)
@@ -92,85 +115,117 @@ let len array-length arr
 do  set arr "length" sub 1 len
     get arr len
 
-(new-part n pos)
-let xpos object
-do  set xpos "x" get pos "x"
-do  set xpos "y" sub mul move-speed n get pos "y"
-let ret object
-do  set ret "pos" xpos
-do  set ret "size" 25
+(array-insert arr where item)
+let ret new-array
+do  array-each ent arr
+    do  and equal n where
+            array-push ret item
+        array-push ret ent
     ret
 
-(new-parts pos)
+# players #
+
+(new-part n pos)
+let xpos object
+do  set xpos "x" sub mul player-size n get pos "x"
+do  set xpos "y" get pos "y"
+let ret object
+do  set ret "pos" xpos
+    ret
+
+(new-parts pos count)
 let parts new-array
-do  range-upto n 100
+do  range-upto n count
         array-push parts new-part n pos
     parts
 
 (new-random-color)
 let obj object
-do  set obj "r" div 1 random 0 256
-do  set obj "g" div 1 random 0 256
-do  set obj "b" div 1 random 0 256
-do  set obj "a" 64
+do  set obj "r" math-floor random 100 256
+do  set obj "g" math-floor random 100 256
+do  set obj "b" math-floor random 100 256
+do  set obj "a" 255
+    obj
+
+(new-greenish-color)
+let obj object
+do  set obj "r" math-floor random 0 100
+do  set obj "g" 255
+do  set obj "b" math-floor random 0 100
+do  set obj "a" 255
     obj
     
 (new-player game)
+let count 5
 let players get game "players"
 let length array-length players
 let obj object
-do  set obj "pos" new-pos game
-do  set obj "parts" new-parts get obj "pos"
+do  set obj "pos" random-pos
+do  set obj "parts" new-parts get obj "pos" count
 do  set obj "color" new-random-color
-do  set obj "dir" div 100 random 0 628
+do  set obj "dir" math-floor random 0 4
 do  array-push players obj
     obj
+
+# game state #
+
+(new-apple)
+let apple object
+do  set apple "color" new-greenish-color
+do  set apple "pos" random-pos
+    apple
+
+(new-apples-for game)
+let apples new-array
+do  array-push apples new-apple 
+do  set game "apples" apples
+    0
 
 (new-game)
 let obj object
 let players new-array
+do  new-apples-for obj
 do  set obj "players" players
     obj
 
-(handle-key key player)
+# inputs #
+
+(handle-key keys player)
 let pos get player "parts"
-if  equal key "left"
-    set player "dir" add turn-speed get player "dir"
-if  equal key "right"
-    set player "dir" sub turn-speed get player "dir"
+do  and get keys "right"
+        set player "dir" 0
+do  and get keys "down"
+        set player "dir" 1
+do  and get keys "left"
+        set player "dir" 2
+do  and get keys "up"
+        set player "dir" 3
     0
+# ticks #
     
 (bound-pos n)
 if  above 0 n
-    bound-pos add 800 n
-if  above n 800
-    bound-pos sub 800 n
+    bound-pos add world-size n
+if  not above world-size n 
+    bound-pos sub world-size n
     n
 
 (game-tick-move-player player)
 let dir get player "dir"
 let pos get player "pos"
 let next-pos object
-let move-x mul move-speed math-sin dir
-let move-y mul move-speed math-cos dir
+let move-x mul player-size math-cos deg-to-rad mul 90 dir
+let move-y mul player-size math-sin deg-to-rad mul 90 dir
 do  set next-pos "x" bound-pos add move-x get pos "x"
 do  set next-pos "y" bound-pos add move-y get pos "y"
 do  set player "pos" next-pos
     0
 
-(distance a b)
-let ax get a "x"
-let ay get a "y"
-let bx get b "x"
-let by get b "y"
-let xd sub ax bx
-let yd sub ay by
-math-sqrt add mul xd xd mul yd yd
-
 (player-dist player game)
 let best object
-do  set best "best" mul 2 800
-let head get get get player "parts" 0 "pos"
+do  set best "best" mul 2 world-size
+let parts get player "parts"
+let head get get parts 0 "pos"
 do  array-each other get game "players"
         and not equal other player
         array-each part get other "parts"
@@ -179,51 +234,70 @@ do  array-each other get game "players"
                 set best "best" nd
     get best "best"
 
+(apple-dist player game)
+let best object
+do  set best "best" mul 2 world-size
+let apples get game "apples"
+let pos get player "pos"
+do  array-each apple apples
+    let dist distance get apple "pos" pos
+    and above get best "best" dist
+        set best "best" dist
+    get best "best"
+
+
 (game-tick game)
-let next-players new-array
+let new-apple object
+do  set new-apple "hit" 0
+let moved-players new-array
 do  array-each player get game "players"
     and player
-    let dist player-dist player game
-    and not above 10 dist
-    and not get player "die"
-    let new-parts new-array
     do  game-tick-move-player player
-    do  array-push new-parts new-part 0 get player "pos"
-    do  array-each part get player "parts"
-        and above array-length get player "parts" array-length new-parts
-            array-push new-parts
-                part
-    do  set player "parts" new-parts
-        array-push next-players player
-    set game "players" next-players
+    let parts get player "parts"
+    let parts-len get parts "length" 
+    let moved-parts new-array
+    do  array-push moved-parts new-part 0 get player "pos"
+    let has-apple above player-size apple-dist player game
+    do  and has-apple set new-apple "hit" 1
+    do  array-each-in-range part parts 0 sub not has-apple parts-len
+        array-push moved-parts part
+    do  set player "parts" moved-parts
+        array-push moved-players player
+do  and get new-apple "hit"
+        new-apples-for game
+let players-without-dead new-array
+do  array-each player moved-players
+    and not get player "die"
+    let dist player-dist player game
+    and not above player-size dist
+        array-push players-without-dead player
+    set game "players" players-without-dead
+
+# init #
 
 (main) 
 let nth object
-do  set nth "nth" 1
 let game new-game
 let wss wss-new 8080
-do  start-interval div 60 1000 game-tick game 
+do  start-interval div 3 1000 game-tick game 
 on-connection ws wss
     let player new-player game
     let iv object
     do  set iv "interval"
-        start-interval div 60 1000
+        start-interval div 3 1000
             let msg object
             do  set msg "game" game
-            do  set msg "nth" get nth "nth"
                 ws-send ws to-json msg 
     do  ws-send ws to-json object
     do  on-close ws
         do  set player "die" 1
             stop-interval get iv "interval"
     do  on-message data ws
-        do  set nth "nth" add 1 get nth "nth"
         let got from-json data 
         let type get got "type"
         if  equal type "ping"
             0
         if  equal type "move"
-            let key get got "dir"
-            handle-key key player
+            handle-key got player
             0
         0
