@@ -130,59 +130,104 @@ rstr-to-num list-reverse x
 
 # parser library #
 
-(parse-any str (then value str) (error))
-if  str
-    then first str second str
-    error
+(state-has-data str)
+second str
 
-(parse-if str (func test) (then value str) (error))
+(state-data str)
+first second str
+
+(state-line str)
+first first str
+
+(state-col str)
+second first str
+
+(str-to-state str)
+pair pair 1 1 str
+
+(state-skip str)
+let data second str
+let chr state-data str
+let col state-col str
+let line state-line str
+    pair
+        if  equal chr 10
+            pair add 1 line 1
+            pair line       add 1 col
+        second data
+
+(strip-comment str)
+if  not state-has-data str
+    str
+let chr state-data str
+if  equal '# chr
+    state-skip str
+    strip-comment state-skip str
+
+(strip str)
+if  not state-has-data str
+    str
+let chr state-data str
+if  equal '# chr
+    strip strip-comment state-skip str
+if  or  equal '   chr
+        equal 10  chr
+    strip state-skip str
+    str
+
+(parse-any str (then value str) (error state msg))
+if  state-has-data str
+    then state-data str state-skip str
+    error str "unexpected end of file"
+
+(parse-if str (func test) (then value str) (error state msg))
 parse-any str
     if  func value
         then value str
-        error 
-    error
+        error str "expected match"
+    error state msg
 
-(parse-value str value (then value str) (error))
+(parse-value str value (then value str) (error state msg))
 parse-if str equal value test
     then value str
-    error
+    error str "expected different char"
 
-(parse-and str (parse1 str (then value str) (error)) (parse2 str (then value str) (error)) (then value str) (error))
+(parse-and str (parse1 str (then value str) (error state msg)) (parse2 str (then value str) (error state msg)) (then value str) (error state msg))
 parse1 str
     let v1 value
     parse2 str
         let v2 value
         then pair v1 v2 str
-        error
-    error
+        error state msg
+    error state msg
 
-(parse-zero-or-more str (parse1 str (then value str) (error)) (then value str) (error))
+(parse-zero-or-more str (parse1 str (then value str) (error state msg)) (then value str) (error state msg))
 parse-and str
     parse1 str
         then value str
-        error
+        error state msg
     parse-zero-or-more str
         parse1 str 
             then value str
-            error
+            error state msg
         then value str
-        error
+        error state msg
     then value str
     then 0 str
 
-(parse-one-or-more str (parse1 str (then value str) (error)) (then value str) (error))
+(parse-one-or-more str (parse1 str (then value str) (error state msg)) (then value str) (error state msg))
 parse-and str
     parse1 str
         then value str
-        error
+        error state msg
     parse-zero-or-more str
         parse1 str 
             then value str
-            error
+            error state msg
         then value str
-        error
+        error state msg
     then value str
-    error
+    error state msg
 
 # bindings #
 
@@ -287,53 +332,35 @@ within-range test '0 '9
 or  is-word-char-init test
     is-digit test
 
-(parse-word str (then value str) (error))
+(parse-word str (then value str) (error state msg))
 parse-and str
-    parse-if str is-word-char-init test
+    parse-if strip str is-word-char-init test
         then value str
-        error
+        error str "expected a different word"
     parse-zero-or-more str
         parse-if str is-word-char test
             then value str
-            error
+            error str "expected word character"
         then value str
-        error
+        error state msg
     then value str
-    error
+    error state msg
 
-(strip-comment str)
-and str
-let chr first str
-if  equal '# chr
-    second str
-    strip-comment second str
-
-(strip str)
-and str
-let chr first str
-if  equal '# chr
-    strip strip-comment second str
-if  or  equal '   chr
-        equal 10  chr
-    strip second str
-    str
-
-(parse-square str (then value str) (error))
+(parse-square str (then value str) (error state msg))
 parse-value strip str '[
     parse-zero-or-more str
-        parse-word strip str
+        parse-word str
             then value str
-            error
+            error state msg
         let ret value
         parse-value strip str ']
             then ret str
-            error
-        error
+            error state msg
+        error state msg
     then 0 str
 
-(parse-args-from str names (then value str) (error))
-let str strip str
-parse-value str '(
+(parse-args-from str names (then value str) (error state msg))
+parse-value strip str '(
     parse-word str
         let func value
         parse-square str
@@ -348,41 +375,41 @@ parse-value str '(
             parse-zero-or-more str
                 parse-args-from str names
                     then value str
-                    error
+                    error state msg
                 let args value
                 parse-value strip str ')
                     then
                         binding-lambda binding-value func args generics
                         str
-                    error
-                error
-            error
-        error
+                    error state msg
+                error state msg
+            error state msg
+        error state msg
     parse-word str
         if  contains names str-eq el value
             then binding-generic value str
             then binding-value value str
-        error
+        error state msg
 
-(parse-args str (then value str) (error))
+(parse-args str (then value str) (error state msg))
 parse-args-from str 0
     then value str
-    error
+    error state msg
 
-(parse-generic-args str tab generics (then str tab) (error))
+(parse-generic-args str tab generics (then str tab) (error state msg))
 if  generics
     parse-args str
         let tab binding-table-append-generic tab binding-lambda first generics pair value 0 0
         parse-generic-args str tab second generics
             then str tab
-            error
-        error
+            error state msg
+        error state msg
     then str tab
 
-(parse-expr-match str tab value (parse-call str tab bindings (parse-expr str tab (then value str tab) (error)) (then value str tab) (error)) (parse-expr str tab (then value str tab) (error)) (then value str tab) (error))
+(parse-expr-match str tab value (parse-call str tab bindings (parse-expr str tab (then value str tab) (error state msg)) (then value str tab) (error state msg)) (parse-expr str tab (then value str tab) (error state msg)) (then value str tab) (error state msg))
 let binding binding-table-lookup tab value
 if  not binding
-    error
+    error str "unknown name"
 if  binding-is-generic binding
     then ast-name value str tab
 if  binding-is-value binding
@@ -391,13 +418,13 @@ if  binding-is-lambda binding
     let v1 value
     parse-generic-args str tab get-binding-generics binding
         parse-call str tab get-binding-args binding
-            parse-expr str tab then value str tab error
+            parse-expr str tab then value str tab error state msg
             then ast-call pair ast-name v1 value str tab
-            error
-        error
-    error
+            error state msg
+        error state msg
+    error str "binding can not be understood"
 
-(parse-call str tab bindings (parse-expr str tab (then value str tab) (error)) (then value str tab) (error))
+(parse-call str tab bindings (parse-expr str tab (then value str tab) (error state msg)) (then value str tab) (error state msg))
 if  bindings
     let binding first bindings
     if  binding-is-generic binding
@@ -406,24 +433,24 @@ if  bindings
             let generic-value first get-binding-args generic-binding-all
             let tab binding-table-append tab generic-value
             parse-call str tab pair generic-value second bindings
-                parse-expr str tab then value str tab error
+                parse-expr str tab then value str tab error state msg
                 then value str tab
-                error
+                error state msg
             parse-expr str tab
                 let v1 value
                 parse-call str tab second bindings
-                    parse-expr str tab then value str tab error
+                    parse-expr str tab then value str tab error state msg
                     then pair v1 value str tab
-                    error
-                error
+                    error state msg
+                error state msg
     if  binding-is-value binding
         parse-expr str tab
             let v1 value
             parse-call str tab second bindings
-                parse-expr str tab then value str tab error
+                parse-expr str tab then value str tab error state msg
                 then pair v1 value str tab
-                error
-            error
+                error state msg
+            error state msg
     if  binding-is-lambda binding
         let tab
             fold tab-with-arg lambda-arg
@@ -438,49 +465,49 @@ if  bindings
                             get-binding-value arg
                     value
             parse-call str tab second bindings
-                parse-expr str tab then value str tab error
+                parse-expr str tab then value str tab error state msg
                 then pair v1 value str tab
-                error
-            error
-        error
+                error state msg
+            error state msg
+        error str "binding could not be understood"
     then 0 str tab
 
-(parse-str-expr str (then value str) (error))
+(parse-str-expr str (then value str) (error state msg))
 parse-value str '"
     parse-zero-or-more str
         parse-if str not equal '" test
             then value str
-            error
+            error state msg
         let ret ast-str value
         parse-value str '"
             then ret str
-            error
-        error
+            error state msg
+        error state msg
     parse-value str ''
         parse-any str
             then ast-number value str
-            error
-        error
+            error state msg
+        error state msg
 
-(parse-expr str tab (then0 value str tab) (error))
+(parse-expr str tab (then0 value str tab) (error state msg))
 let str strip str
 let tab-init tab
 parse-one-or-more str
     parse-if str is-digit test
         then value str 
-        error
+        error state msg
     then0 ast-number str-to-num value str tab 
     parse-word str
         parse-expr-match str tab value
-            parse-call str tab bindings parse-expr str tab then value str tab error then value str tab error
-            parse-expr str tab then value str tab error
+            parse-call str tab bindings parse-expr str tab then value str tab error state msg then value str tab error state msg
+            parse-expr str tab then value str tab error state msg
             then0 value str tab-init
-            error
+            error state msg
         parse-str-expr str
             then0 value str tab-init
-            error
+            error state msg
         
-(parse-toplevel-single str tab (then value str tab) (error))
+(parse-toplevel-single str tab (then value str tab) (error state msg))
 parse-args str
     let func-bind value
     if  binding-is-lambda func-bind
@@ -494,18 +521,18 @@ parse-args str
                     binding-table-append tab-with-arg func-arg
             parse-expr str tab-with-args
                 then ast-function func-ast value str tab-with-func
-                error
-        error
-    error
+                error state msg
+        error str "expected toplevel function, not scalar"
+    error state msg
 
-(parse-toplevel str tab (then values str tab) (error))
-if  not strip str
+(parse-toplevel str tab (then values str tab) (error state msg))
+if  not state-has-data strip str
     then 0 str tab
     parse-toplevel-single str tab
         parse-toplevel str tab
             then pair value values str tab
-            error
-        error
+            error state msg
+        error state msg
 
 (read-file name) ?
 
@@ -713,12 +740,18 @@ if  ast-is-name tree
     0
 
 (main-low str)
-parse-toplevel str binding-table
+parse-toplevel str-to-state str binding-table
     do  put-str "#include <ebrew.h>"
     do  put-line
         for node values
             compile-ast-path node 0 0
-    do  put-str "error"
+    do  put-str "error at: "
+    do  put-str "Ln "
+    do  put-num state-line state
+    do  put-str ", Col "
+    do  put-num state-col state
+    do  put-str ": "
+    do  put-str msg
         put-line
 
 (comp-final file lang)

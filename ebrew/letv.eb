@@ -21,4 +21,5 @@ do  putchar first  s
 (main a)
 and 1
 do  puts "100"
-    putchar 10
+let (x 1
+    x
