@@ -18,8 +18,11 @@ and s
 do  putchar first  s
     puts    second s
 
+(twice (f))
+do f f
+
+(four-times (f))
+twice twice f
+
 (main a)
-and 1
-do  puts "100"
-let (x 1
-    x
+four-times puts "x"
