@@ -25,4 +25,4 @@ do f f
 twice twice f
 
 (main a)
-four-times puts "x"
+four-times puts

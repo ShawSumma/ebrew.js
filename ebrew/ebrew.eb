@@ -150,6 +150,8 @@ if  error-is-char error
         put-str "newline"
     if  equal 32 second error 
         put-str "space"
+    if  equal 39 second error
+        put-str "signle quote"
         do  putchar 39
         do  putchar second error
             putchar 39
