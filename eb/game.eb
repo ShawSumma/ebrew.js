@@ -1,0 +1,172 @@
+
+# imports #
+
+(print x) ?
+(if c (t) (f)) ?
+(new-canvas) ?
+(this) ?
+
+(add x y) ?
+(sub x y) ?
+(mul x y) ?
+(div x y) ?
+(mod x y) ?
+(random low high) ?
+
+(set-width canvas w) ?
+(set-height canvas h) ?
+
+(get-getContext obj name) ?
+(get-getBoundingClientRect obj) ?
+(get-width obj) ?
+(get-height obj) ?
+(get-beginPath obj) ?
+(get-moveTo obj x y) ?
+(get-lineTo obj x y) ?
+(get-stroke obj) ?
+(get-innerWidth obj) ?
+(get-innerHeight obj) ?
+
+(frame (f)) ?
+
+(object) ?
+(get obj key) ?
+(set obj key val) ?
+
+(time) ?
+
+# boxes #
+
+
+(new-box) object
+(box-get box) get box "value"
+(box-set box val) set box "value" val
+
+# document #
+
+(on-keydown [name] obj (f name)) ?
+(on-keyup [name] obj (f name)) ?
+
+(document) get this "document"
+
+# basics #
+
+(let [x] x (in x)) in x
+
+(do x y) y
+
+(not x) if x 0 1
+
+(and x (y)) if x y x
+(or x (y)) if x x y
+
+# vec2 #
+
+(new-vec2 x y)
+let obj object
+do  set obj "x" x
+do  set obj "y" y
+    obj
+
+(vec2-x v2)
+get v2 "x"
+
+(vec2-y v2)
+get v2 "y"
+
+(vec2-setx v2 x)
+set v2 "x" x
+
+(vec2-sety v2 y)
+set v2 "y" y
+
+(vec2-random low high)
+new-vec2
+    random vec2-x low vec2-x high
+    random vec2-y low vec2-y high
+
+# ticks #
+
+(new-ticks)
+let obj object
+do  set obj "time" time
+    obj
+
+(ticks-of obj)
+let t get obj "time"
+do  set obj "time" time
+    sub t time
+
+# drawing #
+
+(set-size canvas w h)
+do  set-width canvas w
+    set-height canvas h
+
+(draw-line ctx p1 p2)
+do  get-beginPath ctx
+do  get-moveTo ctx vec2-x p1 vec2-y p1
+do  get-lineTo ctx vec2-x p2 vec2-y p2
+do  get-stroke ctx
+    ctx
+
+(draw-line-random ctx)
+let v1 vec2-random new-vec2 0 0 new-vec2 100 100
+let v2 vec2-random new-vec2 0 0 new-vec2 100 100
+    draw-line ctx v1 v2
+
+(draw-box ctx start size)
+let xc vec2-x start
+let yc vec2-y start
+let w div 2 vec2-x size
+let h div 2 vec2-y size
+let p0 new-vec2 sub w xc sub h yc
+let p1 new-vec2 sub w xc add h yc
+let p2 new-vec2 add w xc add h yc
+let p3 new-vec2 add w xc sub h yc
+do  draw-line ctx p0 p1
+do  draw-line ctx p1 p2
+do  draw-line ctx p2 p3
+    draw-line ctx p3 p0
+
+# key map #
+
+(new-key-handler)
+let keys object
+do  on-keydown key document
+        set keys get key "key" 1
+do  on-keyup key document
+        set keys get key "key" 0
+    keys
+
+(sqrt-2) div 141421 100000
+
+(speed) div 2 1
+
+(main)
+let canvas new-canvas
+let keys new-key-handler
+let pos new-vec2 100 100
+let ticks new-ticks
+frame
+    let dt ticks-of ticks
+    do  set-size canvas
+        get-innerWidth this
+        get-innerHeight this
+    let run if and or get keys "w" get keys "s" or get keys "a" get keys "d"
+        mul speed mul dt sqrt-2
+        mul speed mul dt 1
+    do print run
+    do  and get keys "w"
+        vec2-sety pos sub run vec2-y pos
+    do  and get keys "s"
+        vec2-sety pos add run vec2-y pos
+    do  and get keys "a"
+        vec2-setx pos sub run vec2-x pos
+    do  and get keys "d"
+        vec2-setx pos add run vec2-x pos
+    let ctx get-getContext canvas "2d"
+    do  draw-box ctx
+        pos
+        new-vec2 10 10
+        0

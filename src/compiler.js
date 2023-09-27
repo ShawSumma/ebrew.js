@@ -1,48 +1,51 @@
 
-const { Form, Ident, Value } = require('./parser.js');
+import { Form, Ident, Value } from '/src/parser.js';
 
 const mangle = (name) => {
     return 'eb_' + name.replace(/-/g, '_DASH_');
 };
 
-const Compiler = class {
+export const Compiler = class {
     constructor() {
         this.globals = {};
     }
 
     compile(node) {
         if (node instanceof Form) {
+            const nodeArgs = node.args;
+            console.log(node)
             switch (node.form) {
+                case 'generic': {
+                    return this.compile(nodeArgs[nodeArgs.length - 1]);
+                }
                 case 'program': {
                     let ret = [];
-                    for (const def of node.args) {
+                    for (const def of nodeArgs) {
                         ret.push(this.compile(def));
                     }
                     return `(async()=>{${ret.join('')}return await main(eb_main);})().catch((e) => {throw e;})`;
                 }
                 case 'func': {
-                    const name = node.args[0].repr;
-                    const args = node.args.slice(1, -1)
-                        .filter(arg => arg.args[0].repr[0] !== '$')
-                        .map(arg => mangle(arg.args[0].repr));
-                    const then = this.compile(node.args[node.args.length - 1]);
+                    const name = nodeArgs[0].repr;
+                    const args = nodeArgs.slice(1, -1).map(arg => mangle(arg.repr));
+                    const then = this.compile(nodeArgs[nodeArgs.length - 1]);
                     return `const ${mangle(name)}=async(${args.join(',')})=>${then};`;
                 }
                 case 'extern': {
-                    const name = node.args[0].repr;
+                    const name = nodeArgs[0].repr;
                     return `const ${mangle(name)}=rt_load("${name}");`;
                 }
                 case 'call': {
-                    const args = node.args.map(arg => this.compile(arg));
+                    const args = nodeArgs.map(arg => this.compile(arg));
                     return `(await ${args[0]}(${args.slice(1).join(',')}))`;
                 }
                 case 'lambda': {
-                    const args = node.args[0].args.map(arg => mangle(arg.repr));
-                    return `(async(${args.join(',')})=>${this.compile(node.args[1])})`
+                    const args = nodeArgs.map(arg => this.compile(arg));
+                    return `(async(${args.slice(0, -1).join(',')})=>${args[args.length - 1]})`
                 }
-                default:
-                    console.log(node.form);
-                    return null;
+                default: {
+                    throw new Error(`error: ${node}`);
+                }
             }
         } else if (node instanceof Ident) {
             return `${mangle(node.repr)}`;
@@ -53,11 +56,8 @@ const Compiler = class {
             } else {
                 return `${node.repr}`;
             }
+        } else {
+            throw new Error(`error: ${node}`);
         }
-        console.log(node);
     }
-};
-
-module.exports = {
-    Compiler,
 };

@@ -1,6 +1,3 @@
-const raylib = require('raylib');
-const ws = require('ws');
-
 const fakeDelay = 0;
 
 const rt_str = (s) => {
@@ -27,14 +24,28 @@ const main = async (f) => {
     return 0;
 };
 
-raylib.SetTraceLogLevel(raylib.LOG_WARNING);
+const start = new Date();
 
 const rt_load = (name) => {
-    if (raylib[name] != null) {
-        if (raylib[name] instanceof Function) {
-            return raylib[name];
-        } else {
-            return () => raylib[name];
+    if (name.startsWith('set-')) {
+        return (obj, value) => {
+            obj[name.slice(4)] = value;
+            return value;
+        }
+    }
+    if (name.startsWith('on-')) {
+        return (obj, cb) => {
+            obj.addEventListener(name.slice(3), cb);
+        };
+    };
+    if (name.startsWith('get-')) {
+        return (obj, ...args) => {
+            let f = obj[name.slice(4)];
+            if (typeof f === 'function') {
+                return f.apply(obj, args);
+            } else {
+                return f;
+            }
         }
     }
     if (/^math-/.test(name)) {
@@ -45,14 +56,13 @@ const rt_load = (name) => {
             return () => Math[name];
         }
     }
-    if (/^on-/.test(name)) {
-        return (ws, f) => {
-            ws.on(name.slice(3), (...args) => {
-                return f(...args);
-            });  
-        };
-    }
     switch (name) {
+        case 'time': return () => {
+            return new Date() - start;
+        };
+        case 'this': return (v) => {
+            return window;
+        };
         case 'if': return async(c, t, f) => {
             if (c) {
                 return await t();
@@ -60,45 +70,13 @@ const rt_load = (name) => {
                 return await f();
             }
         };
-        case 'wss-new': return (port) => {
-            return new ws.WebSocketServer({
-                port,
-            });
-        };
-        case 'stop-interval': return (n) => {
-            clearInterval(n);
-            return 0;
-        };
-        case 'start-interval': return (ms, f) => {
-            return setInterval(f, ms);
-        };
-        case 'ws-send': return (ws, obj) => {
-            if (fakeDelay === 0) {
-                ws.send(obj);
-            } else {
-                setTimeout(() => ws.send(obj), fakeDelay);
+        case 'frame': return (f) => {
+            const run = () => {
+                requestAnimationFrame(run);
+                f();
             }
-        };
-        case 'ws-new': return (ip) => {
-            return new ws.WebSocket(ip, {});
-        };
-        case 'from-json': return (s) => {
-            return JSON.parse(String(s));
-        }
-        case 'to-json': return (o) => {
-            return JSON.stringify(o);
-        };
-        case 'get-time': return () => {
-            return (new Date()).getTime();
-        };
-        case 'time-seconds': return () => {
-            return () => new Date().getSeconds();
-        };
-        case 'time-minutes': return () => {
-            return () => new Date().getMinutes();
-        };
-        case 'time-hours': return () => {
-            return () => new Date().getHours();
+            requestAnimationFrame(run);
+            return 0;
         };
         case 'random': return (low, high) => {
             return Math.floor(Math.random()*(high-low)+low);
@@ -129,7 +107,7 @@ const rt_load = (name) => {
         };
         case 'print': return (a) => {
             console.log(a);
-            return 0;
+            return a;
         };
         case 'above': return (x, y) => {
             return x > y;
@@ -151,6 +129,13 @@ const rt_load = (name) => {
         };
         case 'mod': return (x, y) => {
             return y % x;
+        };
+        case 'new-canvas': return () => {
+            const canvas = document.createElement('canvas');
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            document.body.appendChild(canvas);
+            return canvas;
         };
     }
     throw new Error(`unknown: [${name}]`);
