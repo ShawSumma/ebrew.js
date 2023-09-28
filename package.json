@@ -3,8 +3,21 @@
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "dev": "npx nodemon host.js"
+  },
+  "type": "module",
   "keywords": [],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "concurrently": "^8.2.1",
+    "express": "^4.18.2",
+    "http": "^0.0.1-security",
+    "http-server": "^14.1.1",
+    "morgan": "^1.10.0",
+    "nodemon": "^3.0.1",
+    "reload": "^3.2.1"
+  }
 }
