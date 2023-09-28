@@ -17,7 +17,6 @@ fetch("eb/game.eb")
         const interp = new Compiler();
         const js = interp.compile(ast);
         const prelude = await (await fetch("src/prelude.js")).text();
-        console.log(js);
-        return Function(`${prelude}${js}`)();
+        return eval(`${prelude}\n${js}`);
     })
     .catch(e => console.error(e));

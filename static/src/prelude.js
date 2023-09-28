@@ -40,29 +40,29 @@ const rt_load = (name) => {
     }
     switch (name) {
         case 'apply':
-            return (f, self, args) => {
+            return (self, func, args) => {
                 const obj = [];
                 for (let i = 0; args[i] != null; i++) {
                     obj.push(args[i]);
                 }
-                return f.apply(self, obj);
+                return func.apply(self, obj);
             };
-        case 'object':
+        case 'new':
             return () => {
                 return new Map();
             };
         case 'set':
             return (value, key, obj) => {
                 obj[key] = value;
-                return value;
+                return obj;
+            };
+        case '--':
+            return (f) => {
+                return f;
             };
         case 'get':
             return (key, obj) => {
                 return obj[key];
-            };
-        case 'time':
-            return () => {
-                return new Date() - start;
             };
         case 'this':
             return () => {
@@ -76,18 +76,12 @@ const rt_load = (name) => {
                     return await f();
                 }
             };
-        case 'on-draw':
+        case 'on-init':
             return (f) => {
-                const run = () => {
-                    requestAnimationFrame(run);
-                    f();
-                };
-                requestAnimationFrame(run);
-                return 0;
-            };
-        case 'random':
-            return (low, high) => {
-                return Math.floor(Math.random() * (high - low) + low);
+                const canvas = document.createElement('canvas');
+                document.body.appendChild(canvas);
+                canvas.style.height = '100%';
+                f();
             };
         case 'str': return (c) => {
             return String(c);
@@ -102,21 +96,10 @@ const rt_load = (name) => {
             return (x, y) => {
                 return `${x}${y}`;
             };
-        case 'not': return (x) => {
-                return !x;
-            };
         case 'print':
             return (a) => {
                 console.log(a);
                 return a;
-            };
-        case 'above':
-            return (x, y) => {
-                return x > y;
-            };
-        case 'equal':
-            return (x, y) => {
-                return y === x;
             };
         case 'add':
             return (x, y) => {

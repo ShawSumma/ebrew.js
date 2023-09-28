@@ -1,1 +1,176 @@
 
+
+(new) ?
+
+(get key obj) ?
+(set value key obj) ?
+
+(-- (f)) ?
+
+(this) ?
+
+(apply self func args) ?
+
+(if c (t) (f)) ?
+(while (c) (v)) ?
+
+(print a) ?
+(str c) ?
+(cat x y) ?
+
+(add x y) ?
+(sub x y) ?
+(mul x y) ?
+(div x y) ?
+(mod x y) ?
+
+(lt y x) ?
+(eq y x) ?
+
+(let [x] x (in x)) in x
+
+(not x) if x 0 1
+
+let (do x y) y
+
+let (array) 
+    set 0 "length" new
+
+let (push elem arr)
+let head get "length" arr
+do  set add 1 head "length" arr
+    set elem head arr
+
+let (call func (gen (self val) (arg val) (end)))
+    let me new
+    let args array
+        gen
+            set val "self" me
+            push val args
+            apply
+                get "self" me
+                func
+                args
+
+let (set-interval t (k))
+    call get "setInterval" this
+        do  arg -- k
+        do  arg t
+            end
+
+let (set-timeout t (k))
+    call get "setTimeout" this
+        do  arg -- k
+        do  arg t
+            end
+
+let document get "document" this
+let body get "body" document
+
+let (create-element name)
+    call get "createElement" document
+        do  self get "document" this
+        do  arg name
+            end
+
+let (element-append child elem)
+    call get "append" elem
+        do  self elem
+        do  arg child
+            end
+
+let canvas create-element "canvas"
+
+do  set get "innerWidth" this "width" canvas
+do  set get "innerHeight" this "height" canvas
+
+do  element-append canvas body
+
+let style get "style" canvas
+
+do  set "100%" "height" style 
+
+
+let ctx call get "getContext" canvas
+        do  self canvas
+        do  arg "2d"
+            end
+
+#
+
+ctx.lineWidth = 10;
+
+// Wall
+ctx.strokeRect(75, 140, 150, 110);
+
+// Door
+ctx.fillRect(130, 190, 40, 60);
+
+// Roof
+ctx.beginPath();
+ctx.moveTo(50, 140);
+ctx.lineTo(150, 60);
+ctx.lineTo(250, 140);
+ctx.closePath();
+ctx.stroke();
+
+#
+
+let (stroke-rect x1 y1 x2 y2)
+    call get "strokeRect" ctx
+        do self ctx
+        do arg x1
+        do arg y1
+        do arg x2
+        do arg y2
+            end
+
+let (fill-rect x1 y1 x2 y2)
+    call get "fillRect" ctx
+        do self ctx
+        do arg x1
+        do arg y1
+        do arg x2
+        do arg y2
+            end
+
+let (with-path (k (stroke) (fill) (close) (move-to x y) (line-to x y)))
+    do  call get "beginPath" ctx
+            do  self ctx
+                end
+    do  k
+            call get "stroke" ctx
+                do  self ctx
+                    end
+            call get "fill" ctx
+                do  self ctx
+                    end
+            call get "closePath" ctx
+                do  self ctx
+                    end
+            call get "moveTo" ctx
+                do  self ctx
+                do  arg x
+                do  arg y
+                    end
+            call get "lineTo" ctx
+                do  self ctx
+                do  arg x
+                do  arg y
+                    end
+        call get "closePath" ctx
+            do self ctx
+                end
+
+let (test-house)
+    do  set 10 "lineWidth" ctx
+    do  stroke-rect 75 140 150 110
+    do  fill-rect 130 190 40 60
+        with-path
+        do  move-to 50 140
+        do  line-to 150 60
+        do  line-to 250 140
+        do  close
+            stroke
+
+test-house
