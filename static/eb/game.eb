@@ -1,5 +1,4 @@
 
-
 (new) ?
 
 (get key obj) ?
@@ -29,7 +28,7 @@
 
 (let [x] x (in x)) in x
 
-(not x) if x 0 1
+let (not x) if x 0 1
 
 let (do x y) y
 
@@ -96,26 +95,6 @@ let ctx call get "getContext" canvas
         do  arg "2d"
             end
 
-#
-
-ctx.lineWidth = 10;
-
-// Wall
-ctx.strokeRect(75, 140, 150, 110);
-
-// Door
-ctx.fillRect(130, 190, 40, 60);
-
-// Roof
-ctx.beginPath();
-ctx.moveTo(50, 140);
-ctx.lineTo(150, 60);
-ctx.lineTo(250, 140);
-ctx.closePath();
-ctx.stroke();
-
-#
-
 let (stroke-rect x1 y1 x2 y2)
     call get "strokeRect" ctx
         do self ctx
@@ -134,7 +113,7 @@ let (fill-rect x1 y1 x2 y2)
         do arg y2
             end
 
-let (with-path (k (stroke) (fill) (close) (move-to x y) (line-to x y)))
+let (with-path (k (outline) (fill) (close) (move-to x y) (line-to x y)))
     do  call get "beginPath" ctx
             do  self ctx
                 end
@@ -171,6 +150,33 @@ let (test-house)
         do  line-to 150 60
         do  line-to 250 140
         do  close
-            stroke
+            outline
 
-test-house
+let (fill c (k))
+    let old-c get "fillStyle" ctx
+    do  set c "fillStyle" ctx
+    let res k
+    do  set old-c "fillStyle" ctx
+        res
+
+let (outline c (k))
+    let old-c get "strokeStyle" ctx
+    do  set c "strokeStyle" ctx
+    let res k
+    do  set old-c "strokeStyle" ctx
+        res
+
+let (color c (k))
+    outline c fill c k
+
+let red "red"
+let orange "orange"
+let yellow "yellow"
+let green "green"
+let blue "blue"
+let purple "purple"
+let white "white"
+let grey "grey"
+let black "black"
+
+color red test-house
