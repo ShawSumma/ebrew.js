@@ -10,19 +10,6 @@ const Exit = class extends Error {
     }
 };
 
-const main = async (f) => {
-    try {
-        await f();
-    } catch (e) {
-        if (e instanceof Exit) {
-            return e.code;
-        } else {
-            throw e;
-        }
-    }
-    return 0;
-};
-
 const mangle = (s) => {
     return `ebrew:${s}`;
 };
@@ -49,7 +36,7 @@ const rt_load = (name) => {
             };
         case 'new':
             return () => {
-                return new Map();
+                return {};
             };
         case 'set':
             return (value, key, obj) => {
@@ -57,6 +44,8 @@ const rt_load = (name) => {
                 return obj;
             };
         case '--':
+        case '---':
+        case '----':
             return (f) => {
                 return f;
             };
@@ -69,11 +58,11 @@ const rt_load = (name) => {
                 return window;
             };
         case 'if':
-            return async (c, t, f) => {
+            return (c, t, f) => {
                 if (c) {
-                    return await t();
+                    return t();
                 } else {
-                    return await f();
+                    return f();
                 }
             };
         case 'on-init':
@@ -87,9 +76,9 @@ const rt_load = (name) => {
             return String(c);
         };
         case 'while':
-            return async (c, v) => {
-                while (await c()) {
-                    await v();
+            return (c, v) => {
+                while (c()) {
+                    v();
                 }
             };
         case 'cat':

@@ -23,13 +23,13 @@ export const Compiler = class {
                         ret.push(this.compile(def));
                         ret.push(';');
                     }
-                    return `(async()=>{${ret.join('')}})().catch((e) => {throw e;})`;
+                    return `(()=>{${ret.join('')}})()`;
                 }
                 case 'func': {
                     const name = nodeArgs[0].repr;
                     const args = nodeArgs.slice(1, -1).map(arg => mangle(arg.repr));
                     const then = this.compile(nodeArgs[nodeArgs.length - 1]);
-                    return `const ${mangle(name)}=async(${args.join(',')})=>${then}`;
+                    return `const ${mangle(name)}=(${args.join(',')})=>${then}`;
                 }
                 case 'extern': {
                     const name = nodeArgs[0].repr;
@@ -37,11 +37,11 @@ export const Compiler = class {
                 }
                 case 'call': {
                     const args = nodeArgs.map(arg => this.compile(arg));
-                    return `(await ${args[0]}(${args.slice(1).join(',')}))`;
+                    return `(${args[0]}(${args.slice(1).join(',')}))`;
                 }
                 case 'lambda': {
                     const args = nodeArgs.map(arg => this.compile(arg));
-                    return `(async(${args.slice(0, -1).join(',')})=>${args[args.length - 1]})`
+                    return `((${args.slice(0, -1).join(',')})=>${args[args.length - 1]})`
                 }
                 default: {
                     throw new Error(`error: ${node}`);

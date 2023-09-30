@@ -111,11 +111,12 @@ export const ParseError = class extends Error {
 }
 
 export const Parser = class {
-    constructor(binding) {
+    constructor(binding, readFile) {
         this.realDefs = [{}];
         this.state = new State(binding);
         this.generics = [];
         this.errors = [];
+        this.readFile = readFile;
     }
 
     get defs() {
@@ -445,13 +446,35 @@ export const Parser = class {
         }
     }
 
-    readDef() {
+    async readPragma() {
+        this.state.skip();
+        const name = this.readName();
+        switch (name.repr) {
+        case 'use': {
+            const expr = this.readExprMatch(new Binding(null));
+            const name = expr.repr;
+            const text = await this.readFile(name);
+            const parser = new Parser(text, this.readFile);
+            this.defs.unshift(...parser.defs);
+            return parser.readDefs();
+        }
+        default: {
+            return [this.raise('unknown %' + name.repr)];
+        }
+        }
+        return [];
+    }
+
+    async readDef() {
+        if (this.state.first() === '%') {
+            return await this.readPragma();
+        }
         if (this.state.first() !== '(') {
-            return this.readExprMatch(new Binding(null));
+            return [this.readExprMatch(new Binding(null))];
         }
         const type = this.readArgArray([]);
         if (!type.func) {
-            return this.raise('toplevel: empty definiton');
+            return [this.raise('toplevel: empty definiton')];
         }
         const fname = type.name;
         this.defs[0][fname.repr] = type;
@@ -468,17 +491,17 @@ export const Parser = class {
             this.skipSpace();
             if (this.state.first() === '?') {
                 this.state.skip();
-                return new Form('extern', fname, argNames);
+                return [new Form('extern', fname, argNames)];
             } else {
                 const fbody = this.readExprMatch(new Binding(null), preStart);
-                return new Form('func', fname, ...argNames, fbody);
+                return [new Form('func', fname, ...argNames, fbody)];
             }
         } finally {
             this.defs.pop();
         }
     }
 
-    readDefs() {
+    async readDefs() {
         const all = [];
         while (true) {
             this.skipSpace();
@@ -490,11 +513,13 @@ export const Parser = class {
                 col: this.state.col,
             };
             try {
-                const def = this.readDef();
-                if (def instanceof Ident && def.repr === '?') {
-                    continue;
+                const defs = await this.readDef();
+                for (const def of defs) {
+                    if (def instanceof Ident && def.repr === '?') {
+                        continue;
+                    }
+                    all.push(def);
                 }
-                all.push(def);
             } catch (e) {
                 if (!(e instanceof ParseError)) {
                     throw e;
@@ -520,7 +545,7 @@ export const Parser = class {
         return all;
     }
 
-    readAll() {
-        return new Form('program', ...this.readDefs());
+    async readAll() {
+        return new Form('program', ...await this.readDefs());
     }
 };

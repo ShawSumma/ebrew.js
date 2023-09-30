@@ -1,0 +1,33 @@
+
+(new) ?
+
+(get key obj) ?
+(set value key obj) ?
+
+(-- (f)) ?
+
+(this) ?
+
+(apply self func args) ?
+
+(if c (t) (f)) ?
+(while (c) (v)) ?
+
+(print a) ?
+(str c) ?
+(cat x y) ?
+
+(add x y) ?
+(sub x y) ?
+(mul x y) ?
+(div x y) ?
+(mod x y) ?
+
+(lt y x) ?
+(eq y x) ?
+
+(let [x] x (in x)) in x
+
+(not x) if x 0 1
+
+(do x y) y

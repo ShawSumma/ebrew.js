@@ -1,10 +1,13 @@
 
+# prelude #
+
 (new) ?
 
 (get key obj) ?
 (set value key obj) ?
 
 (-- (f)) ?
+(--- (f arg1)) ?
 
 (this) ?
 
@@ -28,9 +31,22 @@
 
 (let [x] x (in x)) in x
 
-let (not x) if x 0 1
+(not x) if x 0 1
 
-let (do x y) y
+(do x y) y
+
+(and a (b)) if a b a
+(or a (b)) if a a b
+
+# range utils #
+let (upto num (func index))
+    let cur new
+    do  set num "n" cur
+    while lt get "n" cur 0
+        do  func get "n" cur
+            set add 1 get "n" cur "n" cur
+
+# arrays # 
 
 let (array) 
     set 0 "length" new
@@ -39,6 +55,32 @@ let (push elem arr)
 let head get "length" arr
 do  set add 1 head "length" arr
     set elem head arr
+
+let (length arr)
+    get "length" arr
+
+let (each arr (k index entry))
+    upto length arr
+        k index get index arr
+
+let (filter arr (k index entry))
+    let max length arr
+    let box new
+    do  set 0 "read" box
+    do  set 0 "write" box
+    do  while lt max get "read" box
+        let read get "read" box
+        let write get "write" box
+        let cur get read arr
+        let res k read cur
+        do  set add 1 read "read" box
+        and res
+        do  set cur write arr
+            set add 1 write "write" box
+    do  set get "write" box "length" arr 
+        0
+
+# js interop #
 
 let (call func (gen (self val) (arg val) (end)))
     let me new
@@ -63,6 +105,22 @@ let (set-timeout t (k))
         do  arg t
             end
 
+let (math-random)
+    call get "random" get "Math" this
+        do  self get "Math" this
+            end
+
+let (abs x)
+    if lt 0 x
+        sub x 0
+        x
+
+let (random low high)
+    let res math-random
+    add low mul sub low high res
+
+# canvas #
+
 let document get "document" this
 let body get "body" document
 
@@ -80,43 +138,86 @@ let (element-append child elem)
 
 let canvas create-element "canvas"
 
-do  set get "innerWidth" this "width" canvas
-do  set get "innerHeight" this "height" canvas
-
 do  element-append canvas body
 
-let style get "style" canvas
+do  set "100%" "height" get "style" canvas 
 
-do  set "100%" "height" style 
-
+# drawing #
 
 let ctx call get "getContext" canvas
         do  self canvas
         do  arg "2d"
             end
 
-let (stroke-rect x1 y1 x2 y2)
+let (rad-to-deg x)
+    div get "PI" get "Math" this mul 180 x
+
+let (deg-to-rad x)
+    mul get "PI" get "Math" this div 180 x
+
+let (rad n (k))
+    do  call get "rotate" ctx
+        do  self ctx
+        do  arg n
+            end
+    let res k
+    do  call get "rotate" ctx
+        do  self ctx
+        do  arg sub n 0
+            end
+        res
+
+let (deg m (k))
+    let n deg-to-rad x
+    do  call get "rotate" ctx
+        do  self ctx
+        do  arg n
+            end
+    let res k
+    do  call get "rotate" ctx
+        do  self ctx
+        do  arg sub n 0
+            end
+        res
+
+let (at x y (k))
+    let tf call get "getTransform" ctx
+        do  self ctx
+            end
+    do  call get "translate" ctx
+        do  self ctx
+        do  arg x
+        do  arg y
+            end
+    let res k
+    do  call get "setTransform" ctx
+            do  self ctx
+            do  arg tf
+                end
+        res
+
+let (stroke-rect w h)
     call get "strokeRect" ctx
         do self ctx
-        do arg x1
-        do arg y1
-        do arg x2
-        do arg y2
+        do arg 0
+        do arg 0
+        do arg w
+        do arg h
             end
 
-let (fill-rect x1 y1 x2 y2)
+let (fill-rect w h)
     call get "fillRect" ctx
         do self ctx
-        do arg x1
-        do arg y1
-        do arg x2
-        do arg y2
+        do arg 0
+        do arg 0
+        do arg w
+        do arg h
             end
 
 let (with-path (k (outline) (fill) (close) (move-to x y) (line-to x y)))
     do  call get "beginPath" ctx
-            do  self ctx
-                end
+        do  self ctx
+            end
     do  k
             call get "stroke" ctx
                 do  self ctx
@@ -141,16 +242,26 @@ let (with-path (k (outline) (fill) (close) (move-to x y) (line-to x y)))
             do self ctx
                 end
 
-let (test-house)
-    do  set 10 "lineWidth" ctx
-    do  stroke-rect 75 140 150 110
-    do  fill-rect 130 190 40 60
-        with-path
-        do  move-to 50 140
-        do  line-to 150 60
-        do  line-to 250 140
-        do  close
-            outline
+let (font name (k))
+    let old get "font" ctx
+    do  set name "font" ctx
+    let res k
+    do  set old "font" ctx
+        res
+
+let (say text)
+    call get "fillText" ctx
+        do  self ctx
+        do  arg text
+        do  arg 0 
+        do  arg 0 
+            end
+
+let (debug text)
+    do  say text
+        print text
+        
+# colors #
 
 let (fill c (k))
     let old-c get "fillStyle" ctx
@@ -179,4 +290,189 @@ let white "white"
 let grey "grey"
 let black "black"
 
-color red test-house
+# keys #
+
+let keys new
+let new-keys-box new
+do  set new "box" new-keys-box
+let (reset-new-keys) set new "box" new-keys-box
+let (new-keys) get "box" new-keys-box
+do  call get "addEventListener" body
+        do  self body
+        do  arg "keydown"
+        do  arg ---
+                do  set 1 get "key" arg1 keys
+                or  get "repeat" arg1
+                    set 1 get "key" arg1 new-keys-box
+            end
+do  call get "addEventListener" body
+        do  self body
+        do  arg "keyup"
+        do  arg ---
+                set 0 get "key" arg1 keys
+            end
+
+# tests #
+
+let (every t (f))
+    call get "setInterval" this
+        do  arg -- f
+        do  arg t
+            end
+
+let (if-new-key-down key (cont))
+    and eq 1 get key new-keys-box
+    do  set 0 key new-keys-box
+        cont
+
+let (if-key-down key (cont))
+    and get key keys
+        cont
+
+let (between a b v)
+    and lt b v lt v a
+
+let (close x y)
+    and between 0 x y
+        between 0 sub x 0 y
+
+let local-storage get "localStorage" this
+let json get "JSON" this
+
+let (json-parse str)
+    call get "parse" json
+        do  self local-storage
+        do  arg str
+            end
+
+let (json-stringify obj)
+    call get "stringify" json
+        do  self local-storage
+        do  arg obj
+            end
+
+let (local-get key (else))
+    let str call get "getItem" local-storage
+        do  self local-storage
+        do  arg key
+            end
+    if  str
+        json-parse str
+        else
+        
+let (local-set key value)
+    call get "setItem" local-storage
+        do  self local-storage
+        do  arg key
+        do  arg json-stringify value
+            end
+
+let the-font "40px Arial"
+let game new
+let (player) get "player" game
+let (set-player value) set value "player" game
+let (spawn-javelin)
+    let javelins get "javelins" player
+    let the-javelin new
+    do  set random 0 get "height" canvas "y" the-javelin 
+    do  set add 20 get "width" canvas "x" the-javelin 
+    do  set 0 "rot" the-javelin
+    do  push the-javelin javelins
+        0
+let (reset-game)
+    do  set "menu" "mode" player
+    do  set 100 "pos-y" player
+    do  set 0 "vel-y" player
+    do  set array "javelins" player
+    do  set div 10 1 "acc-y" player
+        0
+do  set-player
+    local-get "game"
+        let cur new
+        do  set-player cur
+        do  set 0 "highscore" cur
+        do  set 0 "score" cur
+        do  reset-game
+            cur
+do  every 100
+    and eq "play" get "mode" player
+        spawn-javelin
+let (draw-frame)
+    do  call get "requestAnimationFrame" this
+            do  arg get "draw" this
+                end
+    or  get "pause" this 
+    do  local-set "game" player
+    do  set get "innerWidth" this "width" canvas
+    do  set get "innerHeight" this "height" canvas
+    do  set add get "vel-y" player get "pos-y" player "pos-y" player
+    do  set add get "acc-y" player get "vel-y" player "vel-y" player
+    do  if-new-key-down "c"
+        set not get "crime-mode" player "crime-mode" player
+    do  if-new-key-down "r"
+        let cur new
+        do  set-player cur
+        do  set 0 "highscore" cur
+        do  set 0 "score" cur
+        do  reset-game
+        do  set 0 "highscore" cur
+        do  set 0 "score" cur
+            0
+    if  eq "menu" get "mode" player
+        do  font the-font at 10 40 say "Plight of the Javelin Catcher"
+        do  font the-font at 10 100 say "Press [Space] to Start"
+        do  font the-font at 10 sub 70 get "height" canvas say cat "high score " get "highscore" player
+        do  font the-font at 10 sub 20 get "height" canvas say cat "score " get "score" player
+        do  if-new-key-down " "
+            do  set "play" "mode" player
+            do  set 0 "score" player
+                spawn-javelin
+            0
+    if  eq "play" get "mode" player
+        let py sub 10 get "pos-y" player
+        let px 10
+        do  if-new-key-down " "
+            set sub div 10 35 0 "vel-y" player
+        do  and lt get "pos-y" player get "height" canvas
+            reset-game
+        do  and lt 0 get "pos-y" player
+            reset-game
+        do  at px py
+            fill-rect 20 20
+        let fail new
+        do  set 0 "is" fail 
+        do  filter get "javelins" player
+            let j entry
+            let x get "x" j
+            let y get "y" j
+            do  set sub 5 x "x" j
+            do
+                color
+                    if get "crime-mode" player
+                        if  mod 2
+                                sub index
+                                length get "javelins" player
+                            red
+                            blue
+                        black
+                    at x y fill-rect 40 10
+            do  and lt 30 abs sub x px
+                and lt 10 abs sub y py
+                    set 1 "is" fail
+            let passed lt x sub 40 0
+            do  or passed
+                    set add 1 get "score" player "score" player
+                passed
+        let last-score get "score" player
+        do  and lt last-score get "highscore" player
+                set last-score "highscore" player
+        do  font the-font at 10 sub 20 get "height" canvas say cat "score " get "score" player
+        do  and get "is" fail
+                reset-game
+            0
+        print cat "bad mode: " get "mode" player
+do  set -- draw-frame "draw" this
+do  call get "requestAnimationFrame" this
+        do  arg get "draw" this
+            end
+    0
