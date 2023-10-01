@@ -4,3 +4,5 @@ node_modules
 out.js
 package-lock.json
 *.out
+.DS_Store
+
