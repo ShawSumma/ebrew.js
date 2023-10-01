@@ -430,7 +430,7 @@ let (draw-frame)
             0
     if  eq "play" get "mode" player
         let py sub 10 get "pos-y" player
-        let px 20
+        let px 50
         do  if-new-key-down " "
             set sub div 10 80 0 "vel-y" player
         do  and lt get "pos-y" player get "height" canvas

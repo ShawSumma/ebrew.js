@@ -34,6 +34,14 @@ const rt_load = (name) => {
                 }
                 return func.apply(self, obj);
             };
+        case 'cons':
+            return (self, func, args) => {
+                const obj = [];
+                for (let i = 0; args[i] != null; i++) {
+                    obj.push(args[i]);
+                }
+                return func.apply(self, obj);
+            };
         case 'new':
             return () => {
                 return {};
