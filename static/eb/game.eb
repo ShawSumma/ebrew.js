@@ -384,7 +384,7 @@ let (reset-game)
     do  set 100 "pos-y" player
     do  set 0 "vel-y" player
     do  set array "javelins" player
-    do  set div 10 1 "acc-y" player
+    do  set div 100 50 "acc-y" player
         0
 do  set-player
     local-get "game"
@@ -409,7 +409,7 @@ let (draw-frame)
     do  set add get "acc-y" player get "vel-y" player "vel-y" player
     do  if-new-key-down "c"
         set not get "crime-mode" player "crime-mode" player
-    do  if-new-key-down "r"
+    do  if-new-key-down "p"
         let cur new
         do  set-player cur
         do  set 0 "highscore" cur
@@ -430,14 +430,14 @@ let (draw-frame)
             0
     if  eq "play" get "mode" player
         let py sub 10 get "pos-y" player
-        let px 10
+        let px 20
         do  if-new-key-down " "
-            set sub div 10 35 0 "vel-y" player
+            set sub div 10 80 0 "vel-y" player
         do  and lt get "pos-y" player get "height" canvas
             reset-game
         do  and lt 0 get "pos-y" player
             reset-game
-        do  at px py
+        do  at sub 10 px sub 10 py
             fill-rect 20 20
         let fail new
         do  set 0 "is" fail 
@@ -455,9 +455,9 @@ let (draw-frame)
                             red
                             blue
                         black
-                    at x y fill-rect 40 10
+                    at sub 20 x sub 5 y fill-rect 40 10
             do  and lt 30 abs sub x px
-                and lt 10 abs sub y py
+                and lt 15 abs sub y py
                     set 1 "is" fail
             let passed lt x sub 40 0
             do  or passed
