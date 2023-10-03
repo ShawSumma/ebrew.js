@@ -34,13 +34,13 @@ const rt_load = (name) => {
                 }
                 return func.apply(self, obj);
             };
-        case 'cons':
-            return (self, func, args) => {
+        case 'instantiate':
+            return (type, args) => {
                 const obj = [];
                 for (let i = 0; args[i] != null; i++) {
                     obj.push(args[i]);
                 }
-                return func.apply(self, obj);
+                return new type(...obj);
             };
         case 'new':
             return () => {
@@ -113,10 +113,14 @@ const rt_load = (name) => {
         case 'div':
             return (x, y) => {
                 return y / x;
-            };
+        };
         case 'mod':
             return (x, y) => {
                 return y % x;
+        };
+        case 'pow':
+            return (x, y) => {
+                return Math.pow(y, x);
             };
         case 'eq':
             return (x, y) => {

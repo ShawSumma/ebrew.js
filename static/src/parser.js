@@ -371,7 +371,7 @@ export const Parser = class {
             if (!this.state.done() && this.state.first() !== '\'') {
                 this.state.skip();
             }
-            return new Value(BigInt(chr.charCodeAt(0)));
+            return new Value(Number(chr.charCodeAt(0)));
         }
         const start = {
             line: this.state.line,
@@ -382,8 +382,8 @@ export const Parser = class {
             return this.raiseFrom(preStart, 'expected expression');
         }
         let res = null;
-        if (/^[0-9]+$/.test(name.repr)) {
-            res = new Value(BigInt(name.repr));
+        if (/^[0-9\\.]+$/.test(name.repr)) {
+            res = new Value(Number(name.repr));
         } else {
             res = this.readCall(name);
         }
