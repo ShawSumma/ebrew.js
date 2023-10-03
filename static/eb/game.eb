@@ -126,6 +126,24 @@ let (math-random)
         do  self get "Math" this
             end
 
+let (math-floor n)
+    call get "floor" get "Math" this
+        do  self get "Math" this
+        do  arg n
+            end
+
+let (object-keys n)
+    call get "keys" get "Object" this
+        do  self get "Object" this
+        do  arg n
+            end
+
+let (object-values n)
+    call get "values" get "Object" this
+        do  self get "Object" this
+        do  arg n
+            end
+
 let (abs x)
     if lt 0 x
         sub x 0
@@ -137,9 +155,12 @@ let (abs-dist x y)
 let (is-within n x y)
     lt n abs-dist x y
 
-let (random low high)
+let (random-range low high)
     let res math-random
     add low mul sub low high res
+
+let (random-int low high)
+    math-floor random-range low high
 
 # dom #
 
@@ -285,6 +306,14 @@ let (wss-obj msg)
         do  arg json-stringify msg
             end
 
+let other-players new
+let all-javelins-box new
+
+let (all-javelins)
+    get "box" all-javelins-box
+
+do  set array "box" all-javelins-box
+
 do  call get "addEventListener" wss
     do  self wss
     do  arg "message"
@@ -293,7 +322,6 @@ do  call get "addEventListener" wss
         let obj json-parse msg
         let opcode get "opcode" obj
         let args get "args" obj
-        do  print opcode
         if  eq "reload" opcode
             do  print "reloading"
                 call get "reload" get "location" this
@@ -301,6 +329,12 @@ do  call get "addEventListener" wss
                         end
         if  eq "debug" opcode
             print args
+        if  eq "javelins" opcode
+            set get 0 args "box" all-javelins-box
+        if  eq "player" opcode
+            let other-player get 0 args
+            do  set other-player get "id" other-player other-players
+                0
         if  eq "nop" opcode
             0
             print cat "unknown ocpode: " opcode
@@ -414,16 +448,17 @@ let (next-frame obj)
 
 let (new-player)
     let player new
-    do  set 4 "pos-x" player
-    do  set 48 "pos-y" player
+    do  set 25 "pos-y" player
     do  set 0 "vel-y" player
     do  set 1 "is-paused" player
+    do  set 0 "is-dead" player
     do  set micro 150 "acc-y" player
+    do  set random-int 0 360 "hue" player
         player
 
 let player-box new
 
-do  set local-get "game" new-player "box" player-box
+do  set new-player "box" player-box
 
 let (reset-player)
     set new-player "box" player-box
@@ -434,49 +469,94 @@ let (player)
 # do  set 1 "is-paused" player #
 let (is-paused) get "is-paused" player
 
-let (players)
-    let ret array
-    do  push player ret
-        ret
-
 let render-obj new
+
+let dt 16
+
+let (draw-player cur-player cur-player-color)
+    color cur-player-color
+        at 4 get "pos-y" cur-player
+        center-rect 2 2
 
 let (render)
 do  next-frame get "render" render-obj
-do  local-set "game" player
-do  if-new-key-down "r"
+let ent new
+do  set "self" "opcode" ent
+do  set array "args" ent
+do  push player get "args" ent
+do  wss-obj ent
+do  if-new-key-down "x"
         reset-player
-do  if-new-key-down "w"
-        set sub milli 50 0 "vel-y" player
 do  if-new-key-down " "
-        set not is-paused "is-paused" player
-do  and is-within 1 98 get "pos-y" player
+    if is-paused
+        do  set 0 "is-paused" player
+            set 0 "is-dead" player
+        set sub milli 60 0 "vel-y" player
+do  and lt 2 sub get "pos-y" player 99
     reset-player
-do  and is-within 1 1 get "pos-y" player
+do  and lt sub get "pos-y" player 1 2
     reset-player
-let dt 16
-    each players
-    let cur-player entry
-    do  color "white"
-            at 0 0
-            rect 100 100
-    do  color "black" 
-            at 1 1
-            rect 98 98
-    do  if  is-paused
-        do  color "grey"
-                font 25 "Arial"
-                at div 4 9 60
-                rotate 350
-                say "PAUSED"
-            0
-        do  inc mul dt get "acc-y" cur-player "vel-y" cur-player
-            inc mul dt get "vel-y" cur-player "pos-y" cur-player
-    do  color "white"
-            at get "pos-x" cur-player get "pos-y" cur-player
-            center-rect 2 2
+do  color "black" 
+        at 1 1
+        rect 98 98
+do  if  is-paused
+    do  color if get "is-dead" player "rgb(255, 100, 100)" "rgb(150, 150, 190)"
+        font 25 "monospace"
+        at div 4 9 60
+        rotate 350
+        if get "is-dead" player
+            say " DEAD "
+            say "PAUSED"
         0
+    do  inc mul dt get "acc-y" player "vel-y" player
+        inc mul dt get "vel-y" player "pos-y" player
+do  each all-javelins
+    let javelin entry
+    let javelin-pos-x get "pos-x" javelin
+    let javelin-pos-y get "pos-y" javelin
+    do  color "lightblue"
+            at javelin-pos-x javelin-pos-y
+            center-rect 4 1
+    do  color "orange"
+        at sub div 2 3 javelin-pos-x javelin-pos-y
+            center-rect 1 1
+    and  is-within 4 javelin-pos-x 4
+    and  is-within div 10 25 javelin-pos-y get "pos-y" player
+        or  is-paused
+        do  reset-player
+        do  set 1 "is-dead" player
+            0
+do  each object-values other-players
+    or  get "is-paused" entry
+    do  draw-player
+            entry
+            if get "is-dead" entry
+                "red"
+            if get "is-paused" entry
+                "grey"
+                "green"
+        0
+do  draw-player
+        player
+        "white"
+do  color "grey"
+        at 0 99
+        rect 100 1
+do  color "grey"
+        at 0 0
+        rect 1 100
+do  color "grey"
+        at 99 0
+        rect 1 100
+do  color "grey"
+        at 0 0
+        rect 100 1
+    0
 
 do  set -- render "render" render-obj
-    next-frame get "render" render-obj
-
+do  call get "addEventListener" wss
+    do  self wss
+    do  arg "open"
+    do  arg -- render
+        end
+    0
